@@ -1,0 +1,322 @@
+import Sidebar from '@/components/layout/Sidebar';
+import {MOCK_JOBS, TIME_SLOT_OPTIONS} from '@/data/mockData';
+import type {Job, StudentPreference, TimeSlot} from '@/types/models';
+import {getStoredStudentPreference, saveStudentPreference} from '@/utils/userPreference';
+import {Bookmark, Briefcase, CheckCircle, DollarSign, MapPin, Search, SlidersHorizontal, Star} from 'lucide-react';
+import {Link} from 'react-router-dom';
+import {useMemo, useState} from 'react';
+
+type SortOption = 'match' | 'distance' | 'latest';
+
+function parseDaysFromPostedDate(postedDate: string) {
+  const matchedValue = postedDate.match(/\d+/);
+  return matchedValue ? Number(matchedValue[0]) : 999;
+}
+
+function calculateMatchScore(job: Job, preference: StudentPreference) {
+  const freeTimeOverlap = job.workSlots.filter((slot) => preference.freeTime.includes(slot)).length;
+  const classConflict = job.workSlots.filter((slot) => preference.classSchedule.includes(slot)).length;
+  const distanceRatio = Math.min(1, job.distanceKm / Math.max(preference.maxDistanceKm, 1));
+
+  const score = 80 + freeTimeOverlap * 8 - classConflict * 20 - distanceRatio * 24 + (job.companyInfo.isVerified ? 8 : -12);
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function SlotPicker({
+  title,
+  selectedSlots,
+  onToggle,
+  tone,
+}: {
+  title: string;
+  selectedSlots: TimeSlot[];
+  onToggle: (slot: TimeSlot) => void;
+  tone: 'primary' | 'secondary';
+}) {
+  const activeClassName =
+    tone === 'primary'
+      ? 'border-primary/40 bg-primary/10 text-primary'
+      : 'border-secondary/40 bg-secondary/10 text-secondary';
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-bold text-on-surface">{title}</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {TIME_SLOT_OPTIONS.map((slot) => {
+          const selected = selectedSlots.includes(slot);
+
+          return (
+            <button
+              key={slot}
+              type="button"
+              onClick={() => onToggle(slot)}
+              className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-all ${
+                selected
+                  ? activeClassName
+                  : 'border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant/40'
+              }`}
+            >
+              {slot}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function JobSearchPage() {
+  const [preference, setPreference] = useState<StudentPreference>(() => getStoredStudentPreference());
+  const [keyword, setKeyword] = useState('');
+  const [onlyVerified, setOnlyVerified] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>('match');
+  const [saveMessage, setSaveMessage] = useState('');
+
+  const matchedJobs = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+
+    const filtered = MOCK_JOBS.filter((job) => {
+      const matchedKeyword =
+        normalizedKeyword.length === 0 ||
+        [job.title, job.company, ...job.skills].join(' ').toLowerCase().includes(normalizedKeyword);
+
+      const matchedDistance = job.distanceKm <= preference.maxDistanceKm;
+      const matchedFreeTime = preference.freeTime.length === 0 || job.workSlots.some((slot) => preference.freeTime.includes(slot));
+      const noClassConflict = !job.workSlots.some((slot) => preference.classSchedule.includes(slot));
+      const matchedVerification = !onlyVerified || job.companyInfo.isVerified;
+
+      return matchedKeyword && matchedDistance && matchedFreeTime && noClassConflict && matchedVerification;
+    }).map((job) => ({
+      job,
+      score: calculateMatchScore(job, preference),
+    }));
+
+    return filtered.sort((a, b) => {
+      if (sortBy === 'distance') {
+        return a.job.distanceKm - b.job.distanceKm;
+      }
+
+      if (sortBy === 'latest') {
+        return parseDaysFromPostedDate(a.job.postedDate) - parseDaysFromPostedDate(b.job.postedDate);
+      }
+
+      return b.score - a.score;
+    });
+  }, [keyword, onlyVerified, preference, sortBy]);
+
+  const verifiedCount = MOCK_JOBS.filter((job) => job.companyInfo.isVerified).length;
+
+  const togglePreferenceSlot = (slotType: 'classSchedule' | 'freeTime', slot: TimeSlot) => {
+    setPreference((currentPreference) => {
+      const currentSlots = currentPreference[slotType];
+      const updatedSlots = currentSlots.includes(slot)
+        ? currentSlots.filter((item) => item !== slot)
+        : [...currentSlots, slot];
+
+      return {
+        ...currentPreference,
+        [slotType]: updatedSlots,
+      };
+    });
+  };
+
+  const handleSavePreference = () => {
+    saveStudentPreference(preference);
+    setSaveMessage('Da luu thong tin lich hoc, lich ranh va dia chi cua ban vao he thong.');
+  };
+
+  return (
+    <div className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-10 lg:flex-row">
+      <Sidebar />
+      <main className="flex-1 space-y-8">
+        <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm md:p-8">
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Bo loc viec lam phu hop cho sinh vien</h1>
+              <p className="mt-2 text-sm font-medium text-on-surface-variant">
+                Loc cong viec theo lich hoc, thoi gian ranh, khoang cach di chuyen va uu tien doanh nghiep da xac thuc.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSavePreference}
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90"
+            >
+              <SlidersHorizontal size={16} className="mr-2" />
+              Luu thong tin ca nhan
+            </button>
+          </div>
+
+          {saveMessage && <p className="mb-6 rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">{saveMessage}</p>}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Dia chi cua ban</span>
+              <input
+                value={preference.homeAddress}
+                onChange={(event) => setPreference((current) => ({...current, homeAddress: event.target.value}))}
+                className="w-full rounded-xl border border-outline-variant/20 bg-surface px-4 py-3 text-sm font-medium outline-none transition-all focus:border-primary/40"
+                placeholder="Vi du: KTX B5 - Dai hoc Bach Khoa Ha Noi"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khoang cach di chuyen toi da (km)</span>
+              <div className="rounded-xl border border-outline-variant/20 bg-surface px-4 py-3">
+                <div className="mb-2 flex items-center justify-between text-sm font-semibold">
+                  <span className="text-on-surface">Muc da chon</span>
+                  <span className="text-secondary">{preference.maxDistanceKm} km</span>
+                </div>
+                <input
+                  type="range"
+                  min={2}
+                  max={30}
+                  value={preference.maxDistanceKm}
+                  onChange={(event) => setPreference((current) => ({...current, maxDistanceKm: Number(event.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+            </label>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <SlotPicker
+              title="Lich hoc cua ban"
+              selectedSlots={preference.classSchedule}
+              onToggle={(slot) => togglePreferenceSlot('classSchedule', slot)}
+              tone="secondary"
+            />
+            <SlotPicker
+              title="Thoi gian ranh"
+              selectedSlots={preference.freeTime}
+              onToggle={(slot) => togglePreferenceSlot('freeTime', slot)}
+              tone="primary"
+            />
+          </div>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Doanh nghiep da xac thuc</p>
+            <p className="mt-2 text-2xl font-headline font-extrabold text-on-surface">{verifiedCount}</p>
+          </div>
+          <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Cong viec phu hop</p>
+            <p className="mt-2 text-2xl font-headline font-extrabold text-on-surface">{matchedJobs.length}</p>
+          </div>
+          <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Dia chi hien tai</p>
+            <p className="mt-2 text-sm font-bold text-on-surface">{preference.homeAddress}</p>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm md:p-8">
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full max-w-lg">
+              <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+              <input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                className="w-full rounded-xl border border-outline-variant/20 bg-surface py-3 pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-primary/40"
+                placeholder="Tim theo vi tri, cong ty, ky nang..."
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface px-3 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                <input type="checkbox" checked={onlyVerified} onChange={(event) => setOnlyVerified(event.target.checked)} />
+                Chi lay doanh nghiep da xac thuc
+              </label>
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value as SortOption)}
+                className="rounded-xl border border-outline-variant/20 bg-surface px-4 py-2 text-sm font-semibold"
+              >
+                <option value="match">Sap xep: Do phu hop</option>
+                <option value="distance">Sap xep: Gan nhat</option>
+                <option value="latest">Sap xep: Moi nhat</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {matchedJobs.length === 0 && (
+              <div className="rounded-2xl border border-outline-variant/20 bg-surface p-8 text-center text-sm font-semibold text-on-surface-variant">
+                Khong co cong viec nao trung voi bo loc hien tai. Thu mo rong khoang cach hoac bo sung khung gio ranh.
+              </div>
+            )}
+
+            {matchedJobs.map(({job, score}) => {
+              const averageRating = job.reviews.length === 0 ? 0 : job.reviews.reduce((sum, review) => sum + review.rating, 0) / job.reviews.length;
+
+              return (
+                <Link key={job.id} to={`/job/${job.id}`} className="group block">
+                  <article className="relative rounded-2xl border border-outline-variant/10 bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+                    <button className="absolute right-5 top-5 rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary">
+                      <Bookmark size={18} />
+                    </button>
+
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface-container-low">
+                        <img src={job.companyLogo} alt={job.company} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <h2 className="text-xl font-headline font-bold text-on-surface transition-colors group-hover:text-primary">{job.title}</h2>
+                          <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-primary">{score}% Match</span>
+                        </div>
+
+                        <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+                          <p className="font-semibold text-on-surface-variant">{job.company}</p>
+                          {job.companyInfo.isVerified ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-secondary">
+                              <CheckCircle size={12} /> Da xac thuc
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
+                              Chua xac thuc
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-on-surface-variant">
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin size={14} className="text-primary" />
+                            {job.location} • {job.distanceKm} km
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Briefcase size={14} className="text-primary" />
+                            {job.type}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <DollarSign size={14} className="text-secondary" />
+                            {job.salary}
+                          </span>
+                        </div>
+
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {job.workSlots.slice(0, 4).map((slot) => (
+                            <span key={`${job.id}-${slot}`} className="rounded-lg border border-outline-variant/10 bg-surface-container-low px-2 py-1 text-[11px] font-semibold text-on-surface-variant">
+                              {slot}
+                            </span>
+                          ))}
+                        </div>
+
+                        <p className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary">
+                          <Star size={14} className="fill-secondary/20" />
+                          {averageRating.toFixed(1)} / 5 • {job.reviews.length} phan hoi tu sinh vien
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
