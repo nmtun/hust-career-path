@@ -1,6 +1,7 @@
 import {ArrowRight, Brain, Briefcase, Layout, MapPin, Search, TrendingUp} from 'lucide-react';
 import {motion} from 'motion/react';
 import {useState} from 'react';
+import {Link, useNavigate} from 'react-router-dom';
 
 const CATEGORIES = [
   {name: 'Công Nghệ Thông Tin', count: '1.2k job listings', icon: Layout, color: 'bg-secondary'},
@@ -9,8 +10,15 @@ const CATEGORIES = [
 ];
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const carouselItems = [...CATEGORIES, ...CATEGORIES];
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(`/jobs${searchKeyword.trim() ? `?q=${encodeURIComponent(searchKeyword.trim())}` : ''}`);
+  };
 
   return (
     <div className="space-y-16 pb-16 sm:space-y-20 sm:pb-20 lg:space-y-24 lg:pb-24">
@@ -24,10 +32,12 @@ export default function HomePage() {
             Nền tảng tuyển dụng độc quyền dành cho sinh viên Đại học Bách Khoa Hà Nội. Khám phá các cơ hội nghề nghiệp được tuyển chọn kỹ lưỡng, kết nối trực tiếp với nhà tuyển dụng hàng đầu và xây dựng con đường sự nghiệp mơ ước của bạn ngay hôm nay.
           </p>
 
-          <div className="flex w-full max-w-3xl flex-col gap-2 rounded-2xl bg-surface-container-highest p-2 shadow-xl shadow-surface-container-highest/50 sm:gap-3 md:flex-row md:items-center md:gap-2">
+          <form onSubmit={handleSearch} className="flex w-full max-w-3xl flex-col gap-2 rounded-2xl bg-surface-container-highest p-2 shadow-xl shadow-surface-container-highest/50 sm:gap-3 md:flex-row md:items-center md:gap-2">
             <div className="flex flex-1 items-center rounded-xl border border-outline-variant/10 bg-surface-container-lowest px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-primary/20">
               <Search size={20} className="mr-3 text-on-surface-variant" />
               <input
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
                 className="w-full border-none bg-transparent font-medium text-on-surface placeholder:text-on-surface-variant focus:ring-0"
                 placeholder="Vị trí, kỹ năng, công ty..."
                 type="text"
@@ -41,10 +51,10 @@ export default function HomePage() {
                 type="text"
               />
             </div>
-            <button className="w-full rounded-xl bg-primary px-8 py-3 font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90 sm:w-auto md:px-6 lg:px-8">
+            <button type="submit" className="w-full rounded-xl bg-primary px-8 py-3 font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90 sm:w-auto md:px-6 lg:px-8">
               Tìm Kiếm
             </button>
-          </div>
+          </form>
         </motion.div>
 
         <motion.div
@@ -84,11 +94,12 @@ export default function HomePage() {
 
           <div className={`featured-carousel-track flex w-max gap-4 sm:gap-5 ${isCarouselPaused ? 'is-paused' : ''}`}>
             {carouselItems.map((cat, i) => (
-              <article
+              <Link
                 key={`${cat.name}-${i}`}
+                to="/jobs"
                 onMouseEnter={() => setIsCarouselPaused(true)}
                 onMouseLeave={() => setIsCarouselPaused(false)}
-                className="group w-[280px] shrink-0 rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm transition-all hover:-translate-y-1 sm:w-[320px] sm:p-7 lg:w-[360px]"
+                className="group block w-[280px] shrink-0 rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm transition-all hover:-translate-y-1 sm:w-[320px] sm:p-7 lg:w-[360px]"
               >
                 <div
                   className={`mb-6 flex h-14 w-14 items-center justify-center rounded-2xl ${cat.color} text-on-secondary shadow-lg shadow-secondary/10 transition-transform group-hover:scale-110`}
@@ -100,7 +111,7 @@ export default function HomePage() {
                 <span className="flex items-center gap-1 text-sm font-bold text-secondary transition-all group-hover:gap-2">
                   Khám phá <ArrowRight size={16} />
                 </span>
-              </article>
+              </Link>
             ))}
           </div>
         </div>

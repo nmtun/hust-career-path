@@ -99,10 +99,10 @@ export default function DashboardPage() {
                 <div className="mb-1 font-bold text-on-surface">NguyenVanA_CV_2023.pdf</div>
                 <div className="mb-6 text-xs text-on-surface-variant">Cập nhật 2 ngày trước</div>
                 <div className="flex gap-4">
-                  <button className="rounded-xl bg-surface-container-lowest p-3 shadow-sm transition-colors hover:text-primary">
+                  <button aria-label="Xem CV" className="rounded-xl bg-surface-container-lowest p-3 shadow-sm transition-colors hover:text-primary">
                     <Eye size={20} />
                   </button>
-                  <button className="rounded-xl bg-surface-container-lowest p-3 shadow-sm transition-colors hover:text-primary">
+                  <button aria-label="Tải CV" className="rounded-xl bg-surface-container-lowest p-3 shadow-sm transition-colors hover:text-primary">
                     <Download size={20} />
                   </button>
                 </div>
