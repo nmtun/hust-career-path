@@ -1,12 +1,22 @@
 import Sidebar from '@/components/layout/Sidebar';
 import {MOCK_JOBS} from '@/data/mockData';
-import {ArrowRight, Building2, CheckCircle, CircleAlert, FileText, Globe, MapPin, ShieldCheck, Star, User} from 'lucide-react';
+import {getSavedJobIds, toggleSavedJob} from '@/utils/savedJobs';
+import {ArrowRight, Bookmark, Building2, CheckCircle, CircleAlert, Clock, FileText, Flame, Globe, MapPin, ShieldCheck, Star, User} from 'lucide-react';
 import {Link, useParams} from 'react-router-dom';
+import {useState} from 'react';
+
+function isDeadlineExpired(deadline: string): boolean {
+  const parts = deadline.split('/');
+  if (parts.length !== 3) return false;
+  const [day, month, year] = parts.map(Number);
+  return new Date(year, month - 1, day) < new Date(new Date().setHours(0, 0, 0, 0));
+}
 
 export default function JobDetailPage() {
   const {id} = useParams();
   const job = MOCK_JOBS.find((item) => item.id === id) ?? MOCK_JOBS[0];
   const companyPath = `/company/${encodeURIComponent(job?.companyInfo.name ?? '')}`;
+  const [savedJobIds, setSavedJobIds] = useState<string[]>(() => getSavedJobIds());
 
   if (!job) {
     return (
@@ -48,14 +58,29 @@ export default function JobDetailPage() {
                       <CircleAlert size={14} /> Doanh nghiep chua xac thuc
                     </span>
                   )}
-                  <span className="rounded-full bg-surface-container-high px-3 py-1 text-on-surface-variant">Han nop: {job.applicationDeadline}</span>
+                  {job.isHot && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-orange-600">
+                      <Flame size={14} /> Hot
+                    </span>
+                  )}
+                  {isDeadlineExpired(job.applicationDeadline) ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-3 py-1 text-on-surface-variant">
+                      <Clock size={14} /> Đã hết hạn ({job.applicationDeadline})
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-surface-container-high px-3 py-1 text-on-surface-variant">Han nop: {job.applicationDeadline}</span>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="flex w-full gap-3 sm:w-auto">
-              <button className="flex-1 rounded-xl border border-outline-variant/30 bg-surface px-6 py-3 text-sm font-bold transition-colors hover:bg-surface-container-low sm:flex-none">
-                Luu cong viec
+              <button
+                onClick={() => setSavedJobIds(toggleSavedJob(job.id))}
+                className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-colors sm:flex-none ${savedJobIds.includes(job.id) ? 'border-primary/40 bg-primary/10 text-primary' : 'border-outline-variant/30 bg-surface hover:bg-surface-container-low'}`}
+              >
+                <Bookmark size={16} className={savedJobIds.includes(job.id) ? 'fill-primary' : ''} />
+                {savedJobIds.includes(job.id) ? 'Da luu' : 'Luu cong viec'}
               </button>
               <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90 sm:flex-none">
                 Ung tuyen ngay <ArrowRight size={18} />
