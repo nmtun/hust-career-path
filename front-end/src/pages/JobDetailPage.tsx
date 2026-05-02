@@ -14,21 +14,22 @@ function isDeadlineExpired(deadline: string): boolean {
 
 export default function JobDetailPage() {
   const {id} = useParams();
-  const job = MOCK_JOBS.find((item) => item.id === id) ?? MOCK_JOBS[0];
-  const companyPath = `/company/${encodeURIComponent(job?.companyInfo.name ?? '')}`;
+  const job = MOCK_JOBS.find((item) => item.id === id);
   const [savedJobIds, setSavedJobIds] = useState<string[]>(() => getSavedJobIds());
 
   if (!job) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-24 text-center">
-        <h1 className="mb-4 text-3xl font-headline font-extrabold text-on-surface">Khong tim thay cong viec</h1>
-        <p className="mb-8 text-on-surface-variant">Vi tri ban chon khong ton tai hoac da bi go khoi he thong.</p>
-        <Link to="/jobs" className="rounded-xl bg-primary px-6 py-3 font-bold text-on-primary">
-          Quay lai danh sach viec lam
+        <h1 className="mb-4 text-3xl font-headline font-extrabold text-on-surface">Không tìm thấy công việc</h1>
+        <p className="mb-8 text-on-surface-variant">Vị trí bạn chọn không tồn tại hoặc đã được gỡ khỏi hệ thống.</p>
+        <Link to="/jobs" className="inline-flex rounded-xl bg-primary px-6 py-3 font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90">
+          Quay lại danh sách việc làm
         </Link>
       </div>
     );
   }
+
+  const companyPath = `/company/${encodeURIComponent(job.companyInfo.name)}`;
 
   const averageRating = job.reviews.length === 0 ? 0 : job.reviews.reduce((sum, review) => sum + review.rating, 0) / job.reviews.length;
 
@@ -51,11 +52,11 @@ export default function JobDetailPage() {
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
                   {job.companyInfo.isVerified ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-3 py-1 text-secondary">
-                      <ShieldCheck size={14} /> Doanh nghiep da xac thuc
+                      <ShieldCheck size={14} /> Doanh nghiệp đã xác thực
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-orange-700">
-                      <CircleAlert size={14} /> Doanh nghiep chua xac thuc
+                      <CircleAlert size={14} /> Doanh nghiệp chưa xác thực
                     </span>
                   )}
                   {job.isHot && (
@@ -68,7 +69,7 @@ export default function JobDetailPage() {
                       <Clock size={14} /> Đã hết hạn ({job.applicationDeadline})
                     </span>
                   ) : (
-                    <span className="rounded-full bg-surface-container-high px-3 py-1 text-on-surface-variant">Han nop: {job.applicationDeadline}</span>
+                    <span className="rounded-full bg-surface-container-high px-3 py-1 text-on-surface-variant">Hạn nộp: {job.applicationDeadline}</span>
                   )}
                 </div>
               </div>
@@ -76,14 +77,18 @@ export default function JobDetailPage() {
 
             <div className="flex w-full gap-3 sm:w-auto">
               <button
+                type="button"
                 onClick={() => setSavedJobIds(toggleSavedJob(job.id))}
                 className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-colors sm:flex-none ${savedJobIds.includes(job.id) ? 'border-primary/40 bg-primary/10 text-primary' : 'border-outline-variant/30 bg-surface hover:bg-surface-container-low'}`}
               >
                 <Bookmark size={16} className={savedJobIds.includes(job.id) ? 'fill-primary' : ''} />
-                {savedJobIds.includes(job.id) ? 'Da luu' : 'Luu cong viec'}
+                {savedJobIds.includes(job.id) ? 'Đã lưu' : 'Lưu việc làm'}
               </button>
-              <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90 sm:flex-none">
-                Ung tuyen ngay <ArrowRight size={18} />
+              <button
+                type="button"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90 sm:flex-none"
+              >
+                Ứng tuyển ngay <ArrowRight size={18} />
               </button>
             </div>
           </div>
@@ -91,7 +96,7 @@ export default function JobDetailPage() {
 
         {!job.companyInfo.isVerified && (
           <section className="rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm font-semibold text-orange-800">
-            Tin tuyen dung nay chua duoc xac thuc boi he thong. Ban nen uu tien cac tin da xac thuc truoc khi ung tuyen.
+            Tin tuyển dụng này chưa được xác thực bởi hệ thống. Bạn nên ưu tiên các tin đã xác thực trước khi ứng tuyển.
           </section>
         )}
 
@@ -99,32 +104,32 @@ export default function JobDetailPage() {
           <div className="space-y-8 xl:col-span-2">
             <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
               <h2 className="mb-5 flex items-center gap-2 text-2xl font-headline font-bold text-on-surface">
-                <FileText className="text-primary" /> Thong tin tuyen dung day du
+                <FileText className="text-primary" /> Thông tin tuyển dụng
               </h2>
               <p className="mb-5 leading-relaxed text-on-surface-variant">{job.description}</p>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl bg-surface-container-low p-4 text-sm">
-                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Dia diem</p>
+                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Địa điểm</p>
                   <p className="mt-2 font-bold text-on-surface">{job.location}</p>
                 </div>
                 <div className="rounded-xl bg-surface-container-low p-4 text-sm">
-                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Muc luong</p>
+                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Mức lương</p>
                   <p className="mt-2 font-bold text-on-surface">{job.salary}</p>
                 </div>
                 <div className="rounded-xl bg-surface-container-low p-4 text-sm">
-                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khoang cach tu sinh vien</p>
+                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khoảng cách ước tính</p>
                   <p className="mt-2 font-bold text-on-surface">{job.distanceKm} km</p>
                 </div>
                 <div className="rounded-xl bg-surface-container-low p-4 text-sm">
-                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khung gio lam viec</p>
+                  <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khung giờ làm việc</p>
                   <p className="mt-2 font-bold text-on-surface">{job.workSlots.join(', ')}</p>
                 </div>
               </div>
 
               <div className="mt-6 grid gap-6 md:grid-cols-2">
                 <div>
-                  <h3 className="mb-3 text-lg font-headline font-bold">Yeu cau</h3>
+                  <h3 className="mb-3 text-lg font-headline font-bold">Yêu cầu</h3>
                   <ul className="space-y-2 text-sm text-on-surface-variant">
                     {job.requirements.map((item) => (
                       <li key={item} className="flex gap-2">
@@ -135,7 +140,7 @@ export default function JobDetailPage() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="mb-3 text-lg font-headline font-bold">Cong viec se thuc hien</h3>
+                  <h3 className="mb-3 text-lg font-headline font-bold">Công việc sẽ thực hiện</h3>
                   <ul className="space-y-2 text-sm text-on-surface-variant">
                     {job.responsibilities.map((item) => (
                       <li key={item} className="flex gap-2">
@@ -149,10 +154,10 @@ export default function JobDetailPage() {
             </section>
 
             <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
-              <h2 className="mb-5 text-2xl font-headline font-bold text-on-surface">Quyen loi va quy trinh tuyen dung</h2>
+              <h2 className="mb-5 text-2xl font-headline font-bold text-on-surface">Quyền lợi và quy trình tuyển dụng</h2>
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <h3 className="mb-3 text-lg font-headline font-bold">Quyen loi</h3>
+                  <h3 className="mb-3 text-lg font-headline font-bold">Quyền lợi</h3>
                   <ul className="space-y-2 text-sm text-on-surface-variant">
                     {job.benefits.map((item) => (
                       <li key={item} className="rounded-lg bg-surface-container-low px-3 py-2">
@@ -162,11 +167,11 @@ export default function JobDetailPage() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="mb-3 text-lg font-headline font-bold">Cac buoc tuyen dung</h3>
+                  <h3 className="mb-3 text-lg font-headline font-bold">Các bước tuyển dụng</h3>
                   <ol className="space-y-2 text-sm text-on-surface-variant">
                     {job.hiringSteps.map((step, index) => (
                       <li key={step} className="rounded-lg border border-outline-variant/15 bg-surface px-3 py-2 font-medium">
-                        Buoc {index + 1}: {step}
+                        Bước {index + 1}: {step}
                       </li>
                     ))}
                   </ol>
@@ -176,10 +181,10 @@ export default function JobDetailPage() {
 
             <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
               <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-2xl font-headline font-bold text-on-surface">Phan hoi tu nguoi dung khac</h2>
+                <h2 className="text-2xl font-headline font-bold text-on-surface">Phản hồi từ người dùng</h2>
                 <p className="inline-flex items-center gap-1 text-sm font-bold text-secondary">
                   <Star size={15} className="fill-secondary/20" />
-                  {averageRating.toFixed(1)} / 5 ({job.reviews.length} danh gia)
+                  {averageRating.toFixed(1)} / 5 ({job.reviews.length} đánh giá)
                 </p>
               </div>
 
@@ -193,7 +198,7 @@ export default function JobDetailPage() {
                       </span>
                       <span className="text-xs font-semibold text-on-surface-variant">{review.createdAt}</span>
                     </div>
-                    <p className="mb-2 text-sm font-semibold text-secondary">Danh gia: {review.rating}/5</p>
+                    <p className="mb-2 text-sm font-semibold text-secondary">Đánh giá: {review.rating}/5</p>
                     <p className="text-sm leading-relaxed text-on-surface-variant">{review.comment}</p>
                   </article>
                 ))}
@@ -203,7 +208,7 @@ export default function JobDetailPage() {
 
           <aside className="space-y-6">
             <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-low p-6 shadow-sm">
-              <h3 className="mb-4 text-xl font-headline font-bold text-on-surface">Thong tin doanh nghiep</h3>
+              <h3 className="mb-4 text-xl font-headline font-bold text-on-surface">Thông tin doanh nghiệp</h3>
 
               <div className="mb-4 flex items-center gap-3">
                 <div className="h-14 w-14 overflow-hidden rounded-xl border border-outline-variant/10 bg-surface">
@@ -212,9 +217,9 @@ export default function JobDetailPage() {
                 <div>
                   <p className="font-bold text-on-surface">{job.companyInfo.name}</p>
                   {job.companyInfo.isVerified ? (
-                    <p className="text-xs font-bold text-secondary">Da xac thuc ngay {job.companyInfo.verifiedAt}</p>
+                    <p className="text-xs font-bold text-secondary">Đã xác thực ngày {job.companyInfo.verifiedAt}</p>
                   ) : (
-                    <p className="text-xs font-bold text-orange-700">Dang cho xac thuc</p>
+                    <p className="text-xs font-bold text-orange-700">Đang chờ xác thực</p>
                   )}
                 </div>
               </div>
@@ -232,9 +237,9 @@ export default function JobDetailPage() {
                 <p className="inline-flex items-center gap-2 break-all">
                   <Globe size={16} /> {job.companyInfo.website}
                 </p>
-                <p className="rounded-xl bg-surface px-3 py-2 text-xs font-semibold">Don vi xac thuc: {job.companyInfo.verifiedBy}</p>
+                <p className="rounded-xl bg-surface px-3 py-2 text-xs font-semibold">Đơn vị xác thực: {job.companyInfo.verifiedBy}</p>
                 <Link to={companyPath} className="inline-flex text-xs font-bold text-secondary hover:underline">
-                  Xem trang doanh nghiep va cac job dang tuyen
+                  Xem trang doanh nghiệp và các vị trí đang tuyển
                 </Link>
               </div>
             </section>

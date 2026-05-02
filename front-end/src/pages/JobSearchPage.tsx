@@ -41,10 +41,12 @@ export default function JobSearchPage() {
   const [searchParams] = useSearchParams();
   const [preference, setPreference] = useState<StudentPreference>(() => getStoredStudentPreference());
   const [keyword, setKeyword] = useState(() => searchParams.get('q') ?? '');
+  const [locationQuery, setLocationQuery] = useState(() => searchParams.get('loc') ?? '');
   const [onlyVerified, setOnlyVerified] = useState(true);
 
   useEffect(() => {
     setKeyword(searchParams.get('q') ?? '');
+    setLocationQuery(searchParams.get('loc') ?? '');
   }, [searchParams]);
   const [sortBy, setSortBy] = useState<SortOption>('match');
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,17 +56,21 @@ export default function JobSearchPage() {
 
   const matchedJobs = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
+    const normalizedLocation = locationQuery.trim().toLowerCase();
 
     const filtered = MOCK_JOBS.filter((job) => {
       const matchedKeyword =
         normalizedKeyword.length === 0 ||
         [job.title, job.company, ...job.skills].join(' ').toLowerCase().includes(normalizedKeyword);
 
+      const matchedLocation =
+        normalizedLocation.length === 0 || job.location.toLowerCase().includes(normalizedLocation);
+
       const matchedDistance = job.distanceKm <= preference.maxDistanceKm;
       const matchedFreeTime = preference.freeTime.length === 0 || job.workSlots.some((slot) => preference.freeTime.includes(slot));
       const matchedVerification = !onlyVerified || job.companyInfo.isVerified;
 
-      return matchedKeyword && matchedDistance && matchedFreeTime && matchedVerification;
+      return matchedKeyword && matchedLocation && matchedDistance && matchedFreeTime && matchedVerification;
     }).map((job) => ({
       job,
       score: calculateMatchScore(job, preference),
@@ -81,7 +87,7 @@ export default function JobSearchPage() {
 
       return b.score - a.score;
     });
-  }, [keyword, onlyVerified, preference, sortBy]);
+  }, [keyword, locationQuery, onlyVerified, preference, sortBy]);
 
   const totalPages = Math.ceil(matchedJobs.length / JOBS_PER_PAGE);
 
@@ -92,7 +98,7 @@ export default function JobSearchPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [keyword, onlyVerified, preference, sortBy]);
+  }, [keyword, locationQuery, onlyVerified, preference, sortBy]);
 
   const verifiedCount = MOCK_JOBS.filter((job) => job.companyInfo.isVerified).length;
 
@@ -112,7 +118,7 @@ export default function JobSearchPage() {
 
   const handleSavePreference = () => {
     saveStudentPreference(preference);
-    setSaveMessage('Da luu thong tin lich hoc, lich ranh va dia chi cua ban vao he thong.');
+    setSaveMessage('Đã lưu lịch học, thời gian rảnh và địa chỉ của bạn.');
   };
 
   useEffect(() => {
@@ -128,9 +134,9 @@ export default function JobSearchPage() {
         <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm md:p-8">
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Bo loc viec lam phu hop cho sinh vien</h1>
+              <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Bộ lọc việc làm phù hợp cho sinh viên</h1>
               <p className="mt-2 text-sm font-medium text-on-surface-variant">
-                Loc cong viec theo lich hoc, thoi gian ranh, khoang cach di chuyen va uu tien doanh nghiep da xac thuc.
+                Lọc công việc theo lịch học, thời gian rảnh, khoảng cách di chuyển và ưu tiên doanh nghiệp đã xác thực.
               </p>
             </div>
             <button
@@ -139,7 +145,7 @@ export default function JobSearchPage() {
               className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90"
             >
               <SlidersHorizontal size={16} className="mr-2" />
-              Luu thong tin ca nhan
+              Lưu thông tin cá nhân
             </button>
           </div>
 
@@ -147,7 +153,7 @@ export default function JobSearchPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Dia chi cua ban</span>
+              <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Địa chỉ của bạn</span>
               <input
                 value={preference.homeAddress}
                 onChange={(event) => setPreference((current) => ({...current, homeAddress: event.target.value}))}
@@ -157,10 +163,10 @@ export default function JobSearchPage() {
             </label>
 
             <label className="space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khoang cach di chuyen toi da (km)</span>
+              <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khoảng cách tối đa (km)</span>
               <div className="rounded-xl border border-outline-variant/20 bg-surface px-4 py-3">
                 <div className="mb-2 flex items-center justify-between text-sm font-semibold">
-                  <span className="text-on-surface">Muc da chon</span>
+                  <span className="text-on-surface">Mức đã chọn</span>
                   <span className="text-secondary">{preference.maxDistanceKm} km</span>
                 </div>
                 <input
@@ -221,11 +227,11 @@ export default function JobSearchPage() {
 
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Doanh nghiep da xac thuc</p>
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Doanh nghiệp đã xác thực</p>
             <p className="mt-2 text-2xl font-headline font-extrabold text-on-surface">{verifiedCount}</p>
           </div>
           <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Cong viec phu hop</p>
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Công việc phù hợp</p>
             <p className="mt-2 text-2xl font-headline font-extrabold text-on-surface">{matchedJobs.length}</p>
             {totalPages > 1 && (
               <p className="mt-0.5 text-xs font-semibold text-on-surface-variant">
@@ -234,37 +240,48 @@ export default function JobSearchPage() {
             )}
           </div>
           <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Dia chi hien tai</p>
-            <p className="mt-2 text-sm font-bold text-on-surface">{preference.homeAddress}</p>
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Địa chỉ hiện tại</p>
+            <p className="mt-2 line-clamp-3 wrap-break-word text-sm font-bold text-on-surface">{preference.homeAddress || '—'}</p>
           </div>
         </section>
 
         <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm md:p-8">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="relative w-full max-w-lg">
-              <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-              <input
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-                className="w-full rounded-xl border border-outline-variant/20 bg-surface py-3 pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-primary/40"
-                placeholder="Tim theo vi tri, cong ty, ky nang..."
-              />
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-3">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-1 md:max-w-2xl">
+              <div className="relative min-w-0 flex-1">
+                <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant/20 bg-surface py-3 pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-primary/40"
+                  placeholder="Tìm theo vị trí, công ty, kỹ năng..."
+                />
+              </div>
+              <div className="relative min-w-0 flex-1">
+                <MapPin size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  value={locationQuery}
+                  onChange={(event) => setLocationQuery(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant/20 bg-surface py-3 pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-primary/40"
+                  placeholder="Lọc theo địa điểm làm việc..."
+                />
+              </div>
             </div>
 
-            <div className="flex gap-3">
-              <label className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface px-3 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-                <input type="checkbox" checked={onlyVerified} onChange={(event) => setOnlyVerified(event.target.checked)} />
-                Chi lay doanh nghiep da xac thuc
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface px-3 py-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                <input type="checkbox" checked={onlyVerified} onChange={(event) => setOnlyVerified(event.target.checked)} className="rounded border-outline-variant" />
+                Chỉ doanh nghiệp đã xác thực
               </label>
               <select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value as SortOption)}
                 aria-label="Sắp xếp theo"
-                className="rounded-xl border border-outline-variant/20 bg-surface px-4 py-2 text-sm font-semibold"
+                className="min-h-[44px] w-full rounded-xl border border-outline-variant/20 bg-surface px-4 py-2 text-sm font-semibold sm:w-auto"
               >
-                <option value="match">Sap xep: Do phu hop</option>
-                <option value="distance">Sap xep: Gan nhat</option>
-                <option value="latest">Sap xep: Moi nhat</option>
+                <option value="match">Độ phù hợp</option>
+                <option value="distance">Gần nhất</option>
+                <option value="latest">Mới nhất</option>
               </select>
             </div>
           </div>
@@ -272,7 +289,7 @@ export default function JobSearchPage() {
           <div className="grid gap-4">
             {matchedJobs.length === 0 && (
               <div className="rounded-2xl border border-outline-variant/20 bg-surface p-8 text-center text-sm font-semibold text-on-surface-variant">
-                Khong co cong viec nao trung voi bo loc hien tai. Thu mo rong khoang cach hoac bo sung khung gio ranh.
+                Không có công việc nào khớp bộ lọc hiện tại. Thử mở rộng khoảng cách, nới lỏng địa điểm hoặc bổ sung khung giờ rảnh.
               </div>
             )}
 
@@ -280,81 +297,88 @@ export default function JobSearchPage() {
               const averageRating = job.reviews.length === 0 ? 0 : job.reviews.reduce((sum, review) => sum + review.rating, 0) / job.reviews.length;
 
               return (
-                <Link key={job.id} to={`/job/${job.id}`} className="group block">
-                  <article className="relative rounded-2xl border border-outline-variant/10 bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
-                    <button
-                      aria-label="Lưu việc làm"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSavedJobIds(toggleSavedJob(job.id)); }}
-                      className={`absolute right-5 top-5 rounded-full p-2 transition-colors hover:bg-surface-container-low ${savedJobIds.includes(job.id) ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
-                    >
-                      <Bookmark size={18} className={savedJobIds.includes(job.id) ? 'fill-primary' : ''} />
-                    </button>
+                <article
+                  key={job.id}
+                  className="group relative rounded-2xl border border-outline-variant/10 bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+                >
+                  <Link
+                    to={`/job/${job.id}`}
+                    className="absolute inset-0 z-0 rounded-2xl outline-none ring-inset focus-visible:ring-2 focus-visible:ring-primary/50"
+                    aria-label={`Xem chi tiết: ${job.title} tại ${job.company}`}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Lưu việc làm"
+                    onClick={() => setSavedJobIds(toggleSavedJob(job.id))}
+                    className={`absolute right-5 top-5 z-20 rounded-full p-2 transition-colors hover:bg-surface-container-low ${savedJobIds.includes(job.id) ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+                  >
+                    <Bookmark size={18} className={savedJobIds.includes(job.id) ? 'fill-primary' : ''} />
+                  </button>
 
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start">
-                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface-container-low">
-                        <img src={job.companyLogo} alt={job.company} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <h2 className="text-xl font-headline font-bold text-on-surface transition-colors group-hover:text-primary">{job.title}</h2>
-                          <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-primary">{score}% Match</span>
-                          {job.isHot && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-orange-600">
-                              <Flame size={10} /> Hot
-                            </span>
-                          )}
-                          {isDeadlineExpired(job.applicationDeadline) && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2 py-1 text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                              <Clock size={10} /> Đã hết hạn
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-                          <p className="font-semibold text-on-surface-variant">{job.company}</p>
-                          {job.companyInfo.isVerified ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-secondary">
-                              <CheckCircle size={12} /> Da xac thuc
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
-                              Chua xac thuc
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-on-surface-variant">
-                          <span className="inline-flex items-center gap-1.5">
-                            <MapPin size={14} className="text-primary" />
-                            {job.location} • {job.distanceKm} km
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <Briefcase size={14} className="text-primary" />
-                            {job.type}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <DollarSign size={14} className="text-secondary" />
-                            {job.salary}
-                          </span>
-                        </div>
-
-                        <div className="mb-3 flex flex-wrap gap-2">
-                          {job.workSlots.slice(0, 4).map((slot) => (
-                            <span key={`${job.id}-${slot}`} className="rounded-lg border border-outline-variant/10 bg-surface-container-low px-2 py-1 text-[11px] font-semibold text-on-surface-variant">
-                              {slot}
-                            </span>
-                          ))}
-                        </div>
-
-                        <p className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary">
-                          <Star size={14} className="fill-secondary/20" />
-                          {averageRating.toFixed(1)} / 5 • {job.reviews.length} phan hoi tu sinh vien
-                        </p>
-                      </div>
+                  <div className="pointer-events-none relative z-10 flex flex-col gap-4 p-5 md:flex-row md:items-start">
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface-container-low">
+                      <img src={job.companyLogo} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                     </div>
-                  </article>
-                </Link>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <h2 className="text-xl font-headline font-bold text-on-surface transition-colors group-hover:text-primary">{job.title}</h2>
+                        <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-primary">{score}% phù hợp</span>
+                        {job.isHot && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-orange-600">
+                            <Flame size={10} /> Hot
+                          </span>
+                        )}
+                        {isDeadlineExpired(job.applicationDeadline) && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2 py-1 text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                            <Clock size={10} /> Đã hết hạn
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+                        <p className="font-semibold text-on-surface-variant">{job.company}</p>
+                        {job.companyInfo.isVerified ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-secondary">
+                            <CheckCircle size={12} /> Đã xác thực
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
+                            Chưa xác thực
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-on-surface-variant">
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPin size={14} className="shrink-0 text-primary" />
+                          {job.location} · {job.distanceKm} km
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Briefcase size={14} className="shrink-0 text-primary" />
+                          {job.type}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <DollarSign size={14} className="shrink-0 text-secondary" />
+                          {job.salary}
+                        </span>
+                      </div>
+
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {job.workSlots.slice(0, 4).map((slot) => (
+                          <span key={`${job.id}-${slot}`} className="rounded-lg border border-outline-variant/10 bg-surface-container-low px-2 py-1 text-[11px] font-semibold text-on-surface-variant">
+                            {slot}
+                          </span>
+                        ))}
+                      </div>
+
+                      <p className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary">
+                        <Star size={14} className="shrink-0 fill-secondary/20" />
+                        {averageRating.toFixed(1)} / 5 · {job.reviews.length} phản hồi từ sinh viên
+                      </p>
+                    </div>
+                  </div>
+                </article>
               );
             })}
           </div>
