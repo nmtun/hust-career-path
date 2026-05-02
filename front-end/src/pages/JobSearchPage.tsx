@@ -1,7 +1,7 @@
 import Sidebar from '@/components/layout/Sidebar';
 import WeekScheduleGrid from '@/components/WeekScheduleGrid';
-import {MOCK_JOBS} from '@/data/mockData';
-import type {Job, StudentPreference, TimeSlot} from '@/types/models';
+import {DAYS_OF_WEEK, MOCK_JOBS, TIME_SLOT_OPTIONS, TIMES_OF_DAY} from '@/data/mockData';
+import type {DayOfWeek, Job, StudentPreference, TimeOfDay, TimeSlot} from '@/types/models';
 import {getStoredStudentPreference, saveStudentPreference} from '@/utils/userPreference';
 import {getSavedJobIds, toggleSavedJob} from '@/utils/savedJobs';
 import {Bookmark, Briefcase, CheckCircle, Clock, DollarSign, Flame, MapPin, Search, SlidersHorizontal, Star} from 'lucide-react';
@@ -43,20 +43,30 @@ export default function JobSearchPage() {
   const [keyword, setKeyword] = useState(() => searchParams.get('q') ?? '');
   const [locationQuery, setLocationQuery] = useState(() => searchParams.get('loc') ?? '');
   const [onlyVerified, setOnlyVerified] = useState(true);
+  const [appliedPreference, setAppliedPreference] = useState<StudentPreference>(() => getStoredStudentPreference());
+  const [appliedKeyword, setAppliedKeyword] = useState(() => searchParams.get('q') ?? '');
+  const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => searchParams.get('loc') ?? '');
+  const [appliedOnlyVerified, setAppliedOnlyVerified] = useState(true);
 
   useEffect(() => {
-    setKeyword(searchParams.get('q') ?? '');
-    setLocationQuery(searchParams.get('loc') ?? '');
+    const nextKeyword = searchParams.get('q') ?? '';
+    const nextLocation = searchParams.get('loc') ?? '';
+    setKeyword(nextKeyword);
+    setLocationQuery(nextLocation);
+    setAppliedKeyword(nextKeyword);
+    setAppliedLocationQuery(nextLocation);
   }, [searchParams]);
   const [sortBy, setSortBy] = useState<SortOption>('match');
+  const [appliedSortBy, setAppliedSortBy] = useState<SortOption>('match');
   const [currentPage, setCurrentPage] = useState(1);
   const [saveMessage, setSaveMessage] = useState('');
   const [savedJobIds, setSavedJobIds] = useState<string[]>(() => getSavedJobIds());
   const [activeScheduleTab, setActiveScheduleTab] = useState<'classSchedule' | 'freeTime'>('classSchedule');
+  const [isWeekScheduleGridVisible, setIsWeekScheduleGridVisible] = useState(false);
 
   const matchedJobs = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-    const normalizedLocation = locationQuery.trim().toLowerCase();
+    const normalizedKeyword = appliedKeyword.trim().toLowerCase();
+    const normalizedLocation = appliedLocationQuery.trim().toLowerCase();
 
     const filtered = MOCK_JOBS.filter((job) => {
       const matchedKeyword =
@@ -66,28 +76,28 @@ export default function JobSearchPage() {
       const matchedLocation =
         normalizedLocation.length === 0 || job.location.toLowerCase().includes(normalizedLocation);
 
-      const matchedDistance = job.distanceKm <= preference.maxDistanceKm;
-      const matchedFreeTime = preference.freeTime.length === 0 || job.workSlots.some((slot) => preference.freeTime.includes(slot));
-      const matchedVerification = !onlyVerified || job.companyInfo.isVerified;
+      const matchedDistance = job.distanceKm <= appliedPreference.maxDistanceKm;
+      const matchedFreeTime = appliedPreference.freeTime.length === 0 || job.workSlots.some((slot) => appliedPreference.freeTime.includes(slot));
+      const matchedVerification = !appliedOnlyVerified || job.companyInfo.isVerified;
 
       return matchedKeyword && matchedLocation && matchedDistance && matchedFreeTime && matchedVerification;
     }).map((job) => ({
       job,
-      score: calculateMatchScore(job, preference),
+      score: calculateMatchScore(job, appliedPreference),
     }));
 
     return filtered.sort((a, b) => {
-      if (sortBy === 'distance') {
+      if (appliedSortBy === 'distance') {
         return a.job.distanceKm - b.job.distanceKm;
       }
 
-      if (sortBy === 'latest') {
+      if (appliedSortBy === 'latest') {
         return parseDaysFromPostedDate(a.job.postedDate) - parseDaysFromPostedDate(b.job.postedDate);
       }
 
       return b.score - a.score;
     });
-  }, [keyword, locationQuery, onlyVerified, preference, sortBy]);
+  }, [appliedKeyword, appliedLocationQuery, appliedOnlyVerified, appliedPreference, appliedSortBy]);
 
   const totalPages = Math.ceil(matchedJobs.length / JOBS_PER_PAGE);
 
@@ -98,7 +108,7 @@ export default function JobSearchPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [keyword, locationQuery, onlyVerified, preference, sortBy]);
+  }, [appliedKeyword, appliedLocationQuery, appliedOnlyVerified, appliedPreference, appliedSortBy]);
 
   const verifiedCount = MOCK_JOBS.filter((job) => job.companyInfo.isVerified).length;
 
@@ -116,9 +126,41 @@ export default function JobSearchPage() {
     });
   };
 
+  const mergeSlots = (slotType: 'classSchedule' | 'freeTime', slots: TimeSlot[]) => {
+    setPreference((currentPreference) => {
+      const currentSlots = currentPreference[slotType];
+      const allOn = slots.length > 0 && slots.every((s) => currentSlots.includes(s));
+      const updatedSlots = allOn ? currentSlots.filter((s) => !slots.includes(s)) : [...new Set([...currentSlots, ...slots])];
+      return {...currentPreference, [slotType]: updatedSlots};
+    });
+  };
+
+  const toggleEntireRow = (slotType: 'classSchedule' | 'freeTime', time: TimeOfDay) => {
+    const slots = DAYS_OF_WEEK.map(({key}) => `${time} ${key}` as TimeSlot);
+    mergeSlots(slotType, slots);
+  };
+
+  const toggleEntireColumn = (slotType: 'classSchedule' | 'freeTime', day: DayOfWeek) => {
+    const slots = TIMES_OF_DAY.map(({key}) => `${key} ${day}` as TimeSlot);
+    mergeSlots(slotType, slots);
+  };
+
+  const toggleEntireGrid = (slotType: 'classSchedule' | 'freeTime') => {
+    mergeSlots(slotType, [...TIME_SLOT_OPTIONS]);
+  };
+
   const handleSavePreference = () => {
     saveStudentPreference(preference);
     setSaveMessage('Đã lưu lịch học, thời gian rảnh và địa chỉ của bạn.');
+  };
+
+  const handleApplyFilters = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAppliedKeyword(keyword);
+    setAppliedLocationQuery(locationQuery);
+    setAppliedOnlyVerified(onlyVerified);
+    setAppliedSortBy(sortBy);
+    setAppliedPreference(preference);
   };
 
   useEffect(() => {
@@ -145,7 +187,7 @@ export default function JobSearchPage() {
               className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90"
             >
               <SlidersHorizontal size={16} className="mr-2" />
-              Lưu thông tin cá nhân
+              Lưu thông tin
             </button>
           </div>
 
@@ -165,60 +207,86 @@ export default function JobSearchPage() {
             <label className="space-y-2">
               <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Khoảng cách tối đa (km)</span>
               <div className="rounded-xl border border-outline-variant/20 bg-surface px-4 py-3">
-                <div className="mb-2 flex items-center justify-between text-sm font-semibold">
-                  <span className="text-on-surface">Mức đã chọn</span>
-                  <span className="text-secondary">{preference.maxDistanceKm} km</span>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={2}
+                    max={30}
+                    value={preference.maxDistanceKm}
+                    onChange={(event) =>
+                      setPreference((current) => ({
+                        ...current,
+                        maxDistanceKm: Number(event.target.value),
+                      }))
+                    }
+                    className="flex-1"
+                  />
+                  <span className="ml-2 w-10 text-right text-secondary font-bold">
+                    {preference.maxDistanceKm}
+                  </span>
                 </div>
-                <input
-                  type="range"
-                  min={2}
-                  max={30}
-                  value={preference.maxDistanceKm}
-                  onChange={(event) => setPreference((current) => ({...current, maxDistanceKm: Number(event.target.value)}))}
-                  className="w-full"
-                />
               </div>
             </label>
           </div>
+    
 
           <div className="mt-6 space-y-4">
-            <div className="inline-flex rounded-2xl border border-outline-variant/20 bg-surface-container-low p-1">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex rounded-2xl border border-outline-variant/20 bg-surface-container-low p-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveScheduleTab('classSchedule')}
+                  className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+                    activeScheduleTab === 'classSchedule'
+                      ? 'bg-secondary text-on-secondary shadow-sm'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  Lịch học
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveScheduleTab('freeTime')}
+                  className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+                    activeScheduleTab === 'freeTime'
+                      ? 'bg-primary text-on-primary shadow-sm'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  Thời gian rảnh
+                </button>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setActiveScheduleTab('classSchedule')}
-                className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
-                  activeScheduleTab === 'classSchedule'
-                    ? 'bg-secondary text-on-secondary shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+                onClick={() => setIsWeekScheduleGridVisible((prev) => !prev)}
+                className="rounded-xl border border-outline-variant/20 bg-surface px-4 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:border-primary/30 hover:text-primary"
               >
-                Lịch học
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveScheduleTab('freeTime')}
-                className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
-                  activeScheduleTab === 'freeTime'
-                    ? 'bg-primary text-on-primary shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`}
-              >
-                Thời gian rảnh
+                {isWeekScheduleGridVisible ? 'Ẩn chỉnh sửa' : 'Chỉnh sửa'}
               </button>
             </div>
 
-            {activeScheduleTab === 'classSchedule' ? (
+            {isWeekScheduleGridVisible && activeScheduleTab === 'classSchedule' && (
               <WeekScheduleGrid
                 title="Lịch học của bạn"
                 selectedSlots={preference.classSchedule}
                 onToggle={(slot) => togglePreferenceSlot('classSchedule', slot)}
+                onToggleEntireRow={(time) => toggleEntireRow('classSchedule', time)}
+                onToggleEntireColumn={(day) => toggleEntireColumn('classSchedule', day)}
+                onToggleEntireGrid={() => toggleEntireGrid('classSchedule')}
                 tone="secondary"
               />
-            ) : (
+            )}
+
+            {isWeekScheduleGridVisible && activeScheduleTab === 'freeTime' && (
               <WeekScheduleGrid
                 title="Thời gian rảnh"
                 selectedSlots={preference.freeTime}
                 onToggle={(slot) => togglePreferenceSlot('freeTime', slot)}
+                onToggleEntireRow={(time) => toggleEntireRow('freeTime', time)}
+                onToggleEntireColumn={(day) => toggleEntireColumn('freeTime', day)}
+                onToggleEntireGrid={() => toggleEntireGrid('freeTime')}
                 tone="primary"
               />
             )}
@@ -233,11 +301,6 @@ export default function JobSearchPage() {
           <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
             <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Công việc phù hợp</p>
             <p className="mt-2 text-2xl font-headline font-extrabold text-on-surface">{matchedJobs.length}</p>
-            {totalPages > 1 && (
-              <p className="mt-0.5 text-xs font-semibold text-on-surface-variant">
-                Trang {currentPage}/{totalPages}
-              </p>
-            )}
           </div>
           <div className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
             <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Địa chỉ hiện tại</p>
@@ -246,7 +309,7 @@ export default function JobSearchPage() {
         </section>
 
         <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm md:p-8">
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-3">
+          <form onSubmit={handleApplyFilters} className="mb-6 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-3">
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-1 md:max-w-2xl">
               <div className="relative min-w-0 flex-1">
                 <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
@@ -271,7 +334,7 @@ export default function JobSearchPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface px-3 py-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
                 <input type="checkbox" checked={onlyVerified} onChange={(event) => setOnlyVerified(event.target.checked)} className="rounded border-outline-variant" />
-                Chỉ doanh nghiệp đã xác thực
+                ĐÃ XÁC THỰC
               </label>
               <select
                 value={sortBy}
@@ -283,8 +346,14 @@ export default function JobSearchPage() {
                 <option value="distance">Gần nhất</option>
                 <option value="latest">Mới nhất</option>
               </select>
+              <button
+                type="submit"
+                className="min-h-[44px] rounded-xl bg-primary px-5 py-2 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
+              >
+                Tìm kiếm
+              </button>
             </div>
-          </div>
+          </form>
 
           <div className="grid gap-4">
             {matchedJobs.length === 0 && (

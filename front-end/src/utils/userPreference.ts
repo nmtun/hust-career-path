@@ -1,7 +1,14 @@
-import {DEFAULT_STUDENT_PREFERENCE} from '@/data/mockData';
-import type {StudentPreference} from '@/types/models';
+import {DEFAULT_STUDENT_PREFERENCE, TIME_SLOT_OPTIONS} from '@/data/mockData';
+import type {StudentPreference, TimeSlot} from '@/types/models';
 
 const STORAGE_KEY = 'hust-career-path:student-preference';
+
+const VALID_TIME_SLOTS = new Set<string>(TIME_SLOT_OPTIONS);
+
+function sanitizeTimeSlots(slots: unknown): TimeSlot[] {
+  if (!Array.isArray(slots)) return [];
+  return slots.filter((s): s is TimeSlot => typeof s === 'string' && VALID_TIME_SLOTS.has(s));
+}
 
 function isStorageAvailable() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -25,9 +32,9 @@ export function getStoredStudentPreference(): StudentPreference {
         ? parsedPreference.maxDistanceKm
         : DEFAULT_STUDENT_PREFERENCE.maxDistanceKm,
       classSchedule: Array.isArray(parsedPreference.classSchedule)
-        ? parsedPreference.classSchedule
+        ? sanitizeTimeSlots(parsedPreference.classSchedule)
         : DEFAULT_STUDENT_PREFERENCE.classSchedule,
-      freeTime: Array.isArray(parsedPreference.freeTime) ? parsedPreference.freeTime : DEFAULT_STUDENT_PREFERENCE.freeTime,
+      freeTime: Array.isArray(parsedPreference.freeTime) ? sanitizeTimeSlots(parsedPreference.freeTime) : DEFAULT_STUDENT_PREFERENCE.freeTime,
     };
   } catch {
     return DEFAULT_STUDENT_PREFERENCE;

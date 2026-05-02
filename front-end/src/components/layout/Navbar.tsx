@@ -43,7 +43,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 grid w-full grid-cols-[1fr_auto_1fr] items-center border-b border-outline-variant/10 bg-surface/80 px-6 py-5 shadow-sm backdrop-blur-xl md:px-12">
       <Link to="/" className="justify-self-start text-xl font-extrabold tracking-tighter text-primary transition-opacity hover:opacity-80">
-        HUST Career Path
+        HUST Work
       </Link>
 
       <nav className="hidden justify-self-center gap-6 md:flex">

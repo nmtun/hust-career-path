@@ -1,7 +1,7 @@
 import Sidebar from '@/components/layout/Sidebar';
 import {MOCK_APPLICATIONS} from '@/data/mockData';
 import type {Application} from '@/types/models';
-import {ArrowUpRight, CheckCircle2, Clock3, Download, Eye, FileText, SendHorizontal, Sparkles, Upload, Verified} from 'lucide-react';
+import {ArrowUpRight, Download, Eye, FileText, Sparkles, Upload, Verified} from 'lucide-react';
 
 const SKILLS = ['C/C++', 'Python', 'Machine Learning', 'Verilog', 'RTOS', 'Git'];
 
@@ -23,7 +23,6 @@ export default function DashboardPage() {
   const totalApplications = MOCK_APPLICATIONS.length;
   const acceptedCount = MOCK_APPLICATIONS.filter((app) => app.status === 'Accepted').length;
   const pendingCount = MOCK_APPLICATIONS.filter((app) => app.status === 'Pending').length;
-  const appliedCount = MOCK_APPLICATIONS.filter((app) => app.status === 'Applied').length;
   const responseRate = totalApplications === 0 ? 0 : Math.round(((acceptedCount + pendingCount) / totalApplications) * 100);
   const profileCompletion = 82;
 
@@ -83,97 +82,51 @@ export default function DashboardPage() {
           </article>
         </section>
 
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-          <div className="space-y-8 xl:col-span-2">
-            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm sm:p-8">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-headline font-bold text-on-surface">Theo dõi ứng tuyển</h2>
-                <button type="button" className="text-sm font-bold text-secondary hover:underline">
-                  Xem tất cả
-                </button>
-              </div>
-              <div className="min-w-0 overflow-x-auto rounded-xl">
-                <table className="w-full min-w-[520px] text-left">
-                  <thead>
-                    <tr className="border-b border-outline-variant/10 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">
-                      <th className="pb-4">Công ty & Vị trí</th>
-                      <th className="pb-4">Ngày nộp</th>
-                      <th className="pb-4 text-right">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-outline-variant/5">
-                    {MOCK_APPLICATIONS.map((app) => (
-                      <tr key={app.id} className="group cursor-pointer">
-                        <td className="py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-low font-headline font-bold text-primary shadow-inner">
-                              {app.companyLogoInitials}
-                            </div>
-                            <div>
-                              <div className="font-bold text-on-surface transition-colors group-hover:text-primary">{app.jobTitle}</div>
-                              <div className="text-sm font-medium text-on-surface-variant">{app.company}</div>
-                            </div>
+        <div className="space-y-8">
+          <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm sm:p-8">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-headline font-bold text-on-surface">Theo dõi ứng tuyển</h2>
+              <button type="button" className="text-sm font-bold text-secondary hover:underline">
+                Xem tất cả
+              </button>
+            </div>
+            <div className="min-w-0 overflow-x-auto rounded-xl">
+              <table className="w-full min-w-[520px] text-left">
+                <thead>
+                  <tr className="border-b border-outline-variant/10 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">
+                    <th className="pb-4">Công ty & Vị trí</th>
+                    <th className="pb-4">Ngày nộp</th>
+                    <th className="pb-4 text-right">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/5">
+                  {MOCK_APPLICATIONS.map((app) => (
+                    <tr key={app.id} className="group cursor-pointer">
+                      <td className="py-6">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-container-low font-headline font-bold text-primary shadow-inner">
+                            {app.companyLogoInitials}
                           </div>
-                        </td>
-                        <td className="py-6 font-mono text-sm text-on-surface-variant">{app.applyDate}</td>
-                        <td className="py-6 text-right">
-                          <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${applicationStatusClass(app.status)}`}>
-                            {applicationStatusLabel(app.status)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                          <div>
+                            <div className="font-bold text-on-surface transition-colors group-hover:text-primary">{app.jobTitle}</div>
+                            <div className="text-sm font-medium text-on-surface-variant">{app.company}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-6 font-mono text-sm text-on-surface-variant">{app.applyDate}</td>
+                      <td className="py-6 text-right">
+                        <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${applicationStatusClass(app.status)}`}>
+                          {applicationStatusLabel(app.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm sm:p-8">
-              <h2 className="mb-4 text-xl font-headline font-bold text-on-surface">Tiến độ ứng tuyển</h2>
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-outline-variant/10 bg-surface p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="inline-flex items-center gap-2 text-sm font-bold text-on-surface">
-                      <CheckCircle2 size={16} className="text-green-700" />
-                      Đã nhận
-                    </p>
-                    <p className="text-sm font-bold text-green-700">{acceptedCount} hồ sơ</p>
-                  </div>
-                  <div className="h-2 rounded-full bg-surface-container-high">
-                    <div className="h-2 rounded-full bg-green-600" style={{width: `${totalApplications ? (acceptedCount / totalApplications) * 100 : 0}%`}} />
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-outline-variant/10 bg-surface p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="inline-flex items-center gap-2 text-sm font-bold text-on-surface">
-                      <Clock3 size={16} className="text-blue-700" />
-                      Đang xử lý
-                    </p>
-                    <p className="text-sm font-bold text-blue-700">{pendingCount} hồ sơ</p>
-                  </div>
-                  <div className="h-2 rounded-full bg-surface-container-high">
-                    <div className="h-2 rounded-full bg-blue-600" style={{width: `${totalApplications ? (pendingCount / totalApplications) * 100 : 0}%`}} />
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-outline-variant/10 bg-surface p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="inline-flex items-center gap-2 text-sm font-bold text-on-surface">
-                      <SendHorizontal size={16} className="text-amber-700" />
-                      Đã nộp hồ sơ
-                    </p>
-                    <p className="text-sm font-bold text-amber-700">{appliedCount} hồ sơ</p>
-                  </div>
-                  <div className="h-2 rounded-full bg-surface-container-high">
-                    <div className="h-2 rounded-full bg-amber-500" style={{width: `${totalApplications ? (appliedCount / totalApplications) * 100 : 0}%`}} />
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm sm:p-8">
               <h2 className="mb-6 text-xl font-headline font-bold text-on-surface">Hồ sơ của tôi</h2>
               <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-container-low p-6 text-center">

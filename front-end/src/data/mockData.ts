@@ -14,7 +14,6 @@ export const TIMES_OF_DAY: {key: TimeOfDay; label: string}[] = [
   {key: 'Sáng', label: 'Sáng'},
   {key: 'Chiều', label: 'Chiều'},
   {key: 'Tối', label: 'Tối'},
-  {key: 'Đêm', label: 'Đêm'},
 ];
 
 export const TIME_SLOT_OPTIONS: TimeSlot[] = DAYS_OF_WEEK.flatMap(({key: day}) =>
