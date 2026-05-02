@@ -1,5 +1,6 @@
 import Sidebar from '@/components/layout/Sidebar';
-import {MOCK_JOBS, TIME_SLOT_OPTIONS} from '@/data/mockData';
+import WeekScheduleGrid from '@/components/WeekScheduleGrid';
+import {MOCK_JOBS} from '@/data/mockData';
 import type {Job, StudentPreference, TimeSlot} from '@/types/models';
 import {getStoredStudentPreference, saveStudentPreference} from '@/utils/userPreference';
 import {getSavedJobIds, toggleSavedJob} from '@/utils/savedJobs';
@@ -24,57 +25,17 @@ function isDeadlineExpired(deadline: string): boolean {
 }
 
 function calculateMatchScore(job: Job, preference: StudentPreference) {
-  const freeTimeOverlap = job.workSlots.filter((slot) => preference.freeTime.includes(slot)).length;
-  const classConflict = job.workSlots.filter((slot) => preference.classSchedule.includes(slot)).length;
-  const distanceRatio = Math.min(1, job.distanceKm / Math.max(preference.maxDistanceKm, 1));
+  const usingFreeTime = preference.freeTime.length > 0;
 
-  const score = 80 + freeTimeOverlap * 8 - classConflict * 20 - distanceRatio * 24 + (job.companyInfo.isVerified ? 8 : -12);
+  const scheduleScore = usingFreeTime
+    ? job.workSlots.filter((slot) => preference.freeTime.includes(slot)).length * 10
+    : -job.workSlots.filter((slot) => preference.classSchedule.includes(slot)).length * 10;
+
+  const score = 70 + scheduleScore + (job.companyInfo.isVerified ? 8 : -12);
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function SlotPicker({
-  title,
-  selectedSlots,
-  onToggle,
-  tone,
-}: {
-  title: string;
-  selectedSlots: TimeSlot[];
-  onToggle: (slot: TimeSlot) => void;
-  tone: 'primary' | 'secondary';
-}) {
-  const activeClassName =
-    tone === 'primary'
-      ? 'border-primary/40 bg-primary/10 text-primary'
-      : 'border-secondary/40 bg-secondary/10 text-secondary';
-
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-bold text-on-surface">{title}</p>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {TIME_SLOT_OPTIONS.map((slot) => {
-          const selected = selectedSlots.includes(slot);
-
-          return (
-            <button
-              key={slot}
-              type="button"
-              onClick={() => onToggle(slot)}
-              className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-all ${
-                selected
-                  ? activeClassName
-                  : 'border-outline-variant/20 bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant/40'
-              }`}
-            >
-              {slot}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export default function JobSearchPage() {
   const [searchParams] = useSearchParams();
@@ -89,6 +50,7 @@ export default function JobSearchPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [saveMessage, setSaveMessage] = useState('');
   const [savedJobIds, setSavedJobIds] = useState<string[]>(() => getSavedJobIds());
+  const [activeScheduleTab, setActiveScheduleTab] = useState<'classSchedule' | 'freeTime'>('classSchedule');
 
   const matchedJobs = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -213,19 +175,47 @@ export default function JobSearchPage() {
             </label>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <SlotPicker
-              title="Lich hoc cua ban"
-              selectedSlots={preference.classSchedule}
-              onToggle={(slot) => togglePreferenceSlot('classSchedule', slot)}
-              tone="secondary"
-            />
-            <SlotPicker
-              title="Thoi gian ranh"
-              selectedSlots={preference.freeTime}
-              onToggle={(slot) => togglePreferenceSlot('freeTime', slot)}
-              tone="primary"
-            />
+          <div className="mt-6 space-y-4">
+            <div className="inline-flex rounded-2xl border border-outline-variant/20 bg-surface-container-low p-1">
+              <button
+                type="button"
+                onClick={() => setActiveScheduleTab('classSchedule')}
+                className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+                  activeScheduleTab === 'classSchedule'
+                    ? 'bg-secondary text-on-secondary shadow-sm'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Lịch học
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveScheduleTab('freeTime')}
+                className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+                  activeScheduleTab === 'freeTime'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Thời gian rảnh
+              </button>
+            </div>
+
+            {activeScheduleTab === 'classSchedule' ? (
+              <WeekScheduleGrid
+                title="Lịch học của bạn"
+                selectedSlots={preference.classSchedule}
+                onToggle={(slot) => togglePreferenceSlot('classSchedule', slot)}
+                tone="secondary"
+              />
+            ) : (
+              <WeekScheduleGrid
+                title="Thời gian rảnh"
+                selectedSlots={preference.freeTime}
+                onToggle={(slot) => togglePreferenceSlot('freeTime', slot)}
+                tone="primary"
+              />
+            )}
           </div>
         </section>
 
