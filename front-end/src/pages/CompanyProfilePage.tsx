@@ -26,10 +26,13 @@ export default function CompanyProfilePage() {
   if (companyJobs.length === 0) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-        <h1 className="text-3xl font-headline font-extrabold text-on-surface">Khong tim thay doanh nghiep</h1>
-        <p className="mt-3 text-sm font-medium text-on-surface-variant">Duong dan doanh nghiep khong hop le hoac du lieu chua duoc cap nhat.</p>
-        <Link to="/jobs" className="mt-8 inline-flex rounded-xl bg-primary px-6 py-3 text-sm font-bold text-on-primary">
-          Quay lai danh sach viec lam
+        <h1 className="text-3xl font-headline font-extrabold text-on-surface">Không tìm thấy doanh nghiệp</h1>
+        <p className="mt-3 text-sm font-medium text-on-surface-variant">Đường dẫn không hợp lệ hoặc dữ liệu chưa được cập nhật.</p>
+        <Link
+          to="/jobs"
+          className="mt-8 inline-flex rounded-xl bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
+        >
+          Quay lại danh sách việc làm
         </Link>
       </div>
     );
@@ -52,19 +55,19 @@ export default function CompanyProfilePage() {
               </div>
               <div>
                 <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">{company.name}</h1>
-                <p className="mt-2 text-sm font-semibold text-on-surface-variant">Trang thong tin doanh nghiep va cac job dang tuyen</p>
+                <p className="mt-2 text-sm font-semibold text-on-surface-variant">Thông tin doanh nghiệp và các vị trí đang tuyển</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {company.isVerified ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-secondary">
-                      <ShieldCheck size={14} /> Da xac thuc
+                      <ShieldCheck size={14} /> Đã xác thực
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-orange-700">
-                      <CircleAlert size={14} /> Chua xac thuc
+                      <CircleAlert size={14} /> Chưa xác thực
                     </span>
                   )}
                   <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs font-black uppercase tracking-wider text-on-surface-variant">
-                    Dang tuyen {companyJobs.length} vi tri
+                    Đang tuyển {companyJobs.length} vị trí
                   </span>
                 </div>
               </div>
@@ -77,34 +80,34 @@ export default function CompanyProfilePage() {
               className="inline-flex items-center justify-center rounded-xl border border-outline-variant/20 bg-surface px-5 py-3 text-sm font-bold text-on-surface transition-all hover:border-primary/40 hover:text-primary"
             >
               <Globe size={16} className="mr-2" />
-              Website doanh nghiep
+              Trang web doanh nghiệp
             </a>
           </div>
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <article className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Linh vuc</p>
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Lĩnh vực</p>
             <p className="mt-2 text-sm font-bold text-on-surface">{company.industry}</p>
           </article>
           <article className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Quy mo</p>
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Quy mô</p>
             <p className="mt-2 text-sm font-bold text-on-surface">{company.companySize}</p>
           </article>
           <article className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Danh gia trung binh</p>
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Đánh giá trung bình</p>
             <p className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-secondary">
               <Star size={14} className="fill-secondary/20" /> {averageRating.toFixed(1)} / 5
             </p>
           </article>
           <article className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-4 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Don vi xac thuc</p>
+            <p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Đơn vị xác thực</p>
             <p className="mt-2 text-sm font-bold text-on-surface">{company.verifiedBy}</p>
           </article>
         </section>
 
         <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm">
-          <h2 className="mb-5 text-2xl font-headline font-bold text-on-surface">Thong tin doanh nghiep</h2>
+          <h2 className="mb-5 text-2xl font-headline font-bold text-on-surface">Thông tin doanh nghiệp</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <p className="inline-flex items-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-on-surface-variant">
               <Building2 size={16} className="text-primary" /> {company.industry}
@@ -117,16 +120,16 @@ export default function CompanyProfilePage() {
             </p>
             <p className="inline-flex items-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-on-surface-variant md:col-span-2">
               <CalendarClock size={16} className="text-primary" />
-              Trang thai xac thuc: {company.isVerified ? `Da xac thuc ngay ${company.verifiedAt}` : 'Dang cho xac thuc'}
+              Trạng thái xác thực: {company.isVerified ? `Đã xác thực ngày ${company.verifiedAt}` : 'Đang chờ xác thực'}
             </p>
           </div>
         </section>
 
         <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-headline font-bold text-on-surface">Cac job dang tuyen</h2>
+            <h2 className="text-2xl font-headline font-bold text-on-surface">Vị trí đang tuyển</h2>
             <p className="inline-flex items-center gap-1 text-sm font-semibold text-on-surface-variant">
-              <CheckCircle size={14} className="text-secondary" /> {companyJobs.length} vi tri dang mo
+              <CheckCircle size={14} className="text-secondary" /> {companyJobs.length} vị trí đang mở
             </p>
           </div>
 
@@ -151,7 +154,7 @@ export default function CompanyProfilePage() {
                     to={`/job/${job.id}`}
                     className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90"
                   >
-                    Xem chi tiet <ArrowRight size={16} className="ml-1" />
+                    Xem chi tiết <ArrowRight size={16} className="ml-1" />
                   </Link>
                 </div>
               </article>

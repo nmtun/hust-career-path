@@ -3,11 +3,11 @@ export default function Footer() {
     <footer className="mt-auto border-t border-outline-variant/10 bg-surface-container-low px-6 py-12 md:px-12">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row">
         <div>
-          <span className="text-xl font-headline font-black text-primary">HUST Career Path</span>
-          <p className="mt-2 text-xs uppercase tracking-widest text-on-surface-variant">© 2024 HUST Career Hub. The Curated Path.</p>
+          <span className="text-xl font-headline font-black text-primary">HUST Work</span>
+          <p className="mt-2 text-xs uppercase tracking-widest text-on-surface-variant">© 2024 HUST Work · Nền tảng việc làm được chọn lọc</p>
         </div>
         <nav className="flex flex-wrap justify-center gap-6">
-          {['Privacy', 'Terms', 'Support', 'Employers'].map((item) => (
+          {['Quyền riêng tư', 'Điều khoản', 'Hỗ trợ', 'Nhà tuyển dụng'].map((item) => (
             <a
               key={item}
               href="#"

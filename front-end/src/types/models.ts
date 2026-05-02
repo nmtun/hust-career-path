@@ -1,16 +1,6 @@
-export type TimeSlot =
-  | 'Sang Thu 2'
-  | 'Chieu Thu 2'
-  | 'Sang Thu 3'
-  | 'Chieu Thu 3'
-  | 'Sang Thu 4'
-  | 'Chieu Thu 4'
-  | 'Sang Thu 5'
-  | 'Chieu Thu 5'
-  | 'Sang Thu 6'
-  | 'Chieu Thu 6'
-  | 'Sang Thu 7'
-  | 'Chieu Thu 7';
+export type DayOfWeek = 'Thứ 2' | 'Thứ 3' | 'Thứ 4' | 'Thứ 5' | 'Thứ 6' | 'Thứ 7' | 'Chủ Nhật';
+export type TimeOfDay = 'Sáng' | 'Chiều' | 'Tối';
+export type TimeSlot = `${TimeOfDay} ${DayOfWeek}`;
 
 export interface CompanyInfo {
   name: string;

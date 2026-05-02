@@ -4,9 +4,9 @@ import {useState} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 
 const CATEGORIES = [
-  {name: 'Công Nghệ Thông Tin', count: '1.2k job listings', icon: Layout, color: 'bg-secondary'},
-  {name: 'Kỹ Thuật Điện Tử', count: '850 job listings', icon: Brain, color: 'bg-primary'},
-  {name: 'Kinh Tế & Quản Lý', count: '420 job listings', icon: TrendingUp, color: 'bg-tertiary'},
+  {name: 'Công nghệ thông tin', count: '1,2k+ tin tuyển dụng', icon: Layout, color: 'bg-secondary'},
+  {name: 'Kỹ thuật điện tử', count: '850+ tin tuyển dụng', icon: Brain, color: 'bg-primary'},
+  {name: 'Kinh tế & quản lý', count: '420+ tin tuyển dụng', icon: TrendingUp, color: 'bg-tertiary'},
 ];
 
 export default function HomePage() {
@@ -14,10 +14,15 @@ export default function HomePage() {
   const carouselItems = [...CATEGORIES, ...CATEGORIES];
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [locationKeyword, setLocationKeyword] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(`/jobs${searchKeyword.trim() ? `?q=${encodeURIComponent(searchKeyword.trim())}` : ''}`);
+    const params = new URLSearchParams();
+    if (searchKeyword.trim()) params.set('q', searchKeyword.trim());
+    if (locationKeyword.trim()) params.set('loc', locationKeyword.trim());
+    const query = params.toString();
+    navigate(`/jobs${query ? `?${query}` : ''}`);
   };
 
   return (
@@ -46,6 +51,8 @@ export default function HomePage() {
             <div className="flex flex-1 items-center rounded-xl border border-outline-variant/10 bg-surface-container-lowest px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-primary/20">
               <MapPin size={20} className="mr-3 text-on-surface-variant" />
               <input
+                value={locationKeyword}
+                onChange={(e) => setLocationKeyword(e.target.value)}
                 className="w-full border-none bg-transparent font-medium text-on-surface placeholder:text-on-surface-variant focus:ring-0"
                 placeholder="Địa điểm..."
                 type="text"
@@ -65,7 +72,7 @@ export default function HomePage() {
           <div className="relative aspect-[4/5] rotate-2 overflow-hidden rounded-[2.5rem] shadow-2xl">
             <img
               src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=1000&fit=crop"
-              alt="Students colaborating"
+              alt="Sinh viên làm việc nhóm"
               className="h-full w-full object-cover"
               referrerPolicy="no-referrer"
             />

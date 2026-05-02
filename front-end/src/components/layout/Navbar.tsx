@@ -4,10 +4,9 @@ import {useEffect, useRef, useState} from 'react';
 import {Link, useLocation, useNavigate} from 'react-router-dom';
 
 const NAV_ITEMS = [
-  {name: 'Explore', path: '/'},
-  {name: 'Jobs', path: '/jobs'},
-  {name: 'Applications', path: '/dashboard'},
-  {name: 'Resources', path: '/jobs'},
+  {name: 'Trang chủ', path: '/'},
+  {name: 'Việc làm', path: '/jobs'},
+  {name: 'Ứng tuyển', path: '/dashboard'},
 ];
 
 export default function Navbar() {
@@ -44,7 +43,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 grid w-full grid-cols-[1fr_auto_1fr] items-center border-b border-outline-variant/10 bg-surface/80 px-6 py-5 shadow-sm backdrop-blur-xl md:px-12">
       <Link to="/" className="justify-self-start text-xl font-extrabold tracking-tighter text-primary transition-opacity hover:opacity-80">
-        HUST Career Path
+        HUST Work
       </Link>
 
       <nav className="hidden justify-self-center gap-6 md:flex">
