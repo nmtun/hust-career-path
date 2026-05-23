@@ -1,5 +1,5 @@
 import {DEFAULT_STUDENT_PREFERENCE, TIME_SLOT_OPTIONS} from '@/data/mockData';
-import type {StudentPreference, TimeSlot} from '@/types/models';
+import type {LocationCoordinates, StudentPreference, TimeSlot} from '@/types/models';
 
 const STORAGE_KEY = 'hust-career-path:student-preference';
 
@@ -8,6 +8,13 @@ const VALID_TIME_SLOTS = new Set<string>(TIME_SLOT_OPTIONS);
 function sanitizeTimeSlots(slots: unknown): TimeSlot[] {
   if (!Array.isArray(slots)) return [];
   return slots.filter((s): s is TimeSlot => typeof s === 'string' && VALID_TIME_SLOTS.has(s));
+}
+
+function sanitizeCoordinates(value: unknown): LocationCoordinates | null {
+  if (!value || typeof value !== 'object') return null;
+  const coords = value as LocationCoordinates;
+  if (!Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) return null;
+  return {lat: coords.lat, lng: coords.lng};
 }
 
 function isStorageAvailable() {
@@ -26,8 +33,10 @@ export function getStoredStudentPreference(): StudentPreference {
 
   try {
     const parsedPreference = JSON.parse(rawPreference) as StudentPreference;
+    const storedCoords = sanitizeCoordinates(parsedPreference.homeCoords);
     return {
       homeAddress: parsedPreference.homeAddress || DEFAULT_STUDENT_PREFERENCE.homeAddress,
+      homeCoords: storedCoords ?? DEFAULT_STUDENT_PREFERENCE.homeCoords,
       maxDistanceKm: Number.isFinite(parsedPreference.maxDistanceKm)
         ? parsedPreference.maxDistanceKm
         : DEFAULT_STUDENT_PREFERENCE.maxDistanceKm,

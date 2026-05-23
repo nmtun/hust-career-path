@@ -45,7 +45,7 @@ export default function CompanyProfilePage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-10 lg:flex-row">
-      <Sidebar />
+      {/* <Sidebar /> */}
       <main className="flex-1 space-y-8">
         <header className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm md:p-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">

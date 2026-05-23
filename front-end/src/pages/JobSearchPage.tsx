@@ -1,6 +1,7 @@
+import MapPicker from '@/components/MapPicker';
 import WeekScheduleGrid from '@/components/WeekScheduleGrid';
 import {DAYS_OF_WEEK, MOCK_JOBS, TIME_SLOT_OPTIONS, TIMES_OF_DAY} from '@/data/mockData';
-import type {DayOfWeek, Job, StudentPreference, TimeOfDay, TimeSlot} from '@/types/models';
+import type {DayOfWeek, Job, LocationCoordinates, StudentPreference, TimeOfDay, TimeSlot} from '@/types/models';
 import {getStoredStudentPreference, saveStudentPreference} from '@/utils/userPreference';
 import {getSavedJobIds, toggleSavedJob} from '@/utils/savedJobs';
 import {Bookmark, Briefcase, CheckCircle, Clock, DollarSign, Flame, MapPin, Search, SlidersHorizontal, Star, X} from 'lucide-react';
@@ -31,25 +32,81 @@ function calculateMatchScore(job: Job, preference: StudentPreference) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function calculateDistanceKm(from: LocationCoordinates, to: LocationCoordinates) {
+  const earthRadiusKm = 6371;
+  const deltaLat = toRadians(to.lat - from.lat);
+  const deltaLng = toRadians(to.lng - from.lng);
+  const startLat = toRadians(from.lat);
+  const endLat = toRadians(to.lat);
+
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2) * Math.cos(startLat) * Math.cos(endLat);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c;
+}
+
+async function geocodeAddress(query: string, signal?: AbortSignal): Promise<LocationCoordinates | null> {
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('limit', '1');
+  url.searchParams.set('q', query);
+  url.searchParams.set('countrycodes', 'vn');
+
+  const response = await fetch(url.toString(), {
+    signal,
+    headers: {
+      'Accept-Language': 'vi',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to geocode address');
+  }
+
+  const results = (await response.json()) as Array<{lat: string; lon: string}>;
+  if (!Array.isArray(results) || results.length === 0) {
+    return null;
+  }
+
+  const first = results[0];
+  return {
+    lat: Number(first.lat),
+    lng: Number(first.lon),
+  };
+}
+
+function isRemoteJob(job: Job) {
+  const normalizedLocation = job.location.toLowerCase();
+  return normalizedLocation.includes('online') || normalizedLocation.includes('remote') || normalizedLocation.includes('từ xa');
+}
+
+function getJobDistanceKm(job: Job, preference: StudentPreference) {
+  if (isRemoteJob(job)) return 0;
+  if (job.locationCoords) {
+    return calculateDistanceKm(preference.homeCoords, job.locationCoords);
+  }
+  return job.distanceKm;
+}
+
 
 export default function JobSearchPage() {
   const [searchParams] = useSearchParams();
   const [preference, setPreference] = useState<StudentPreference>(() => getStoredStudentPreference());
   const [keyword, setKeyword] = useState(() => searchParams.get('q') ?? '');
-  const [locationQuery, setLocationQuery] = useState(() => searchParams.get('loc') ?? '');
   const [onlyVerified, setOnlyVerified] = useState(true);
   const [appliedPreference, setAppliedPreference] = useState<StudentPreference>(() => getStoredStudentPreference());
   const [appliedKeyword, setAppliedKeyword] = useState(() => searchParams.get('q') ?? '');
-  const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => searchParams.get('loc') ?? '');
   const [appliedOnlyVerified, setAppliedOnlyVerified] = useState(true);
 
   useEffect(() => {
     const nextKeyword = searchParams.get('q') ?? '';
-    const nextLocation = searchParams.get('loc') ?? '';
     setKeyword(nextKeyword);
-    setLocationQuery(nextLocation);
     setAppliedKeyword(nextKeyword);
-    setAppliedLocationQuery(nextLocation);
   }, [searchParams]);
   const [sortBy, setSortBy] = useState<SortOption>('match');
   const [appliedSortBy, setAppliedSortBy] = useState<SortOption>('match');
@@ -57,31 +114,41 @@ export default function JobSearchPage() {
   const [saveMessage, setSaveMessage] = useState('');
   const [savedJobIds, setSavedJobIds] = useState<string[]>(() => getSavedJobIds());
   const [isWeekScheduleGridVisible, setIsWeekScheduleGridVisible] = useState(false);
+  const [isMapPickerVisible, setIsMapPickerVisible] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState('');
 
   const matchedJobs = useMemo(() => {
     const normalizedKeyword = appliedKeyword.trim().toLowerCase();
-    const normalizedLocation = appliedLocationQuery.trim().toLowerCase();
+    const hasScheduleConflict = (job: Job) =>
+      job.workSlots.some((slot) => appliedPreference.classSchedule.includes(slot));
 
-    const filtered = MOCK_JOBS.filter((job) => {
+    const filtered = MOCK_JOBS.flatMap((job) => {
+      const distanceKm = getJobDistanceKm(job, appliedPreference);
       const matchedKeyword =
         normalizedKeyword.length === 0 ||
         [job.title, job.company, ...job.skills].join(' ').toLowerCase().includes(normalizedKeyword);
 
-      const matchedLocation =
-        normalizedLocation.length === 0 || job.location.toLowerCase().includes(normalizedLocation);
-
-      const matchedDistance = job.distanceKm <= appliedPreference.maxDistanceKm;
+      const matchedDistance = distanceKm <= appliedPreference.maxDistanceKm;
       const matchedVerification = !appliedOnlyVerified || job.companyInfo.isVerified;
+      const matchedSchedule = !hasScheduleConflict(job);
 
-      return matchedKeyword && matchedLocation && matchedDistance && matchedVerification;
-    }).map((job) => ({
-      job,
-      score: calculateMatchScore(job, appliedPreference),
-    }));
+      if (!matchedKeyword || !matchedDistance || !matchedVerification || !matchedSchedule) {
+        return [];
+      }
+
+      return [
+        {
+          job,
+          score: calculateMatchScore(job, appliedPreference),
+          distanceKm,
+        },
+      ];
+    });
 
     return filtered.sort((a, b) => {
       if (appliedSortBy === 'distance') {
-        return a.job.distanceKm - b.job.distanceKm;
+        return a.distanceKm - b.distanceKm;
       }
 
       if (appliedSortBy === 'latest') {
@@ -90,7 +157,7 @@ export default function JobSearchPage() {
 
       return b.score - a.score;
     });
-  }, [appliedKeyword, appliedLocationQuery, appliedOnlyVerified, appliedPreference, appliedSortBy]);
+  }, [appliedKeyword, appliedOnlyVerified, appliedPreference, appliedSortBy]);
 
   const totalPages = Math.ceil(matchedJobs.length / JOBS_PER_PAGE);
 
@@ -101,7 +168,7 @@ export default function JobSearchPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [appliedKeyword, appliedLocationQuery, appliedOnlyVerified, appliedPreference, appliedSortBy]);
+  }, [appliedKeyword, appliedOnlyVerified, appliedPreference, appliedSortBy]);
 
   const togglePreferenceSlot = (slot: TimeSlot) => {
     setPreference((currentPreference) => {
@@ -140,6 +207,10 @@ export default function JobSearchPage() {
     mergeSlots([...TIME_SLOT_OPTIONS]);
   };
 
+  const handleHomeCoordsChange = (coords: LocationCoordinates) => {
+    setPreference((currentPreference) => ({...currentPreference, homeCoords: coords}));
+  };
+
   const handleSavePreference = () => {
     saveStudentPreference(preference);
     setSaveMessage('Đã lưu lịch học và địa chỉ của bạn.');
@@ -147,7 +218,6 @@ export default function JobSearchPage() {
 
   const applyFilters = () => {
     setAppliedKeyword(keyword);
-    setAppliedLocationQuery(locationQuery);
     setAppliedOnlyVerified(onlyVerified);
     setAppliedSortBy(sortBy);
     setAppliedPreference(preference);
@@ -163,6 +233,42 @@ export default function JobSearchPage() {
     const timer = setTimeout(() => setSaveMessage(''), 3000);
     return () => clearTimeout(timer);
   }, [saveMessage]);
+
+  useEffect(() => {
+    const query = preference.homeAddress.trim();
+    if (query.length < 5) {
+      setGeocodeError('');
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setIsGeocoding(true);
+      setGeocodeError('');
+
+      try {
+        const coords = await geocodeAddress(query, controller.signal);
+        if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) {
+          setGeocodeError('Không tìm thấy địa chỉ phù hợp.');
+          return;
+        }
+        setPreference((currentPreference) => ({...currentPreference, homeCoords: coords}));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setGeocodeError('Không thể tra cứu địa chỉ.');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsGeocoding(false);
+        }
+      }
+    }, 700);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [preference.homeAddress]);
 
   return (
     <div className="bg-surface-container-lowest px-4 py-8 sm:px-6 lg:py-10">
@@ -195,6 +301,18 @@ export default function JobSearchPage() {
                   className="min-h-[44px] w-full rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-3 py-2 text-sm font-medium outline-none transition-all focus:border-primary/40"
                   placeholder="KTX B5 - ĐHBK Hà Nội"
                 />
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-on-surface-variant">
+                  <span>
+                    {preference.homeCoords.lat.toFixed(5)}, {preference.homeCoords.lng.toFixed(5)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsMapPickerVisible(true)}
+                    className="inline-flex items-center gap-1 rounded-full border border-outline-variant/20 px-3 py-1 text-[11px] font-bold text-on-surface-variant transition-colors hover:border-primary/30 hover:text-primary"
+                  >
+                    <MapPin size={12} /> Chọn trên bản đồ
+                  </button>
+                </div>
               </label>
 
               <label className="space-y-2">
@@ -276,15 +394,6 @@ export default function JobSearchPage() {
                     placeholder="Vị trí, công ty, kỹ năng..."
                   />
                 </div>
-                <div className="relative min-w-0 flex-1">
-                  <MapPin size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-                  <input
-                    value={locationQuery}
-                    onChange={(event) => setLocationQuery(event.target.value)}
-                    className="min-h-[44px] w-full rounded-xl border border-outline-variant/20 bg-surface-container-lowest py-2 pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-primary/40"
-                    placeholder="Địa điểm làm việc..."
-                  />
-                </div>
                 <select
                   value={sortBy}
                   onChange={(event) => setSortBy(event.target.value as SortOption)}
@@ -311,7 +420,7 @@ export default function JobSearchPage() {
               </div>
             )}
 
-            {pagedJobs.map(({job, score}) => {
+            {pagedJobs.map(({job, score, distanceKm}) => {
               const averageRating = job.reviews.length === 0 ? 0 : job.reviews.reduce((sum, review) => sum + review.rating, 0) / job.reviews.length;
 
               return (
@@ -370,7 +479,7 @@ export default function JobSearchPage() {
                       <div className="mb-3 flex flex-wrap gap-4 text-xs font-semibold text-on-surface-variant">
                         <span className="inline-flex items-center gap-1.5">
                           <MapPin size={14} className="shrink-0 text-primary" />
-                          {job.location} · {job.distanceKm} km
+                          {job.location} · {distanceKm.toFixed(1)} km
                         </span>
                         <span className="inline-flex items-center gap-1.5">
                           <Briefcase size={14} className="shrink-0 text-primary" />
@@ -485,6 +594,79 @@ export default function JobSearchPage() {
                   className="min-h-[42px] rounded-xl bg-primary px-5 py-2 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
                 >
                   Áp dụng lịch học
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isMapPickerVisible && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 px-4 py-6 backdrop-blur-sm">
+            <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-lowest shadow-2xl">
+              <div className="flex items-start justify-between gap-4 border-b border-outline-variant/10 px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-headline font-extrabold text-on-surface">Chọn vị trí trên bản đồ</h2>
+                  <p className="mt-1 text-sm font-medium text-on-surface-variant">
+                    Chạm vào bản đồ để cập nhật tọa độ dùng cho tính khoảng cách.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Đóng chọn vị trí"
+                  onClick={() => setIsMapPickerVisible(false)}
+                  className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto px-5 py-4">
+                <label className="mb-4 block space-y-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Địa chỉ</span>
+                  <input
+                    value={preference.homeAddress}
+                    onChange={(event) => setPreference((current) => ({...current, homeAddress: event.target.value}))}
+                    className="min-h-[44px] w-full rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-3 py-2 text-sm font-medium outline-none transition-all focus:border-primary/40"
+                    placeholder="Nhập địa chỉ để lưu lại"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-on-surface-variant" aria-live="polite">
+                    <span>
+                      {isGeocoding
+                        ? 'Đang tìm vị trí từ địa chỉ...'
+                        : geocodeError || 'Nhập địa chỉ để tự động cập nhật tọa độ.'}
+                    </span>
+                  </div>
+                </label>
+                <MapPicker
+                  value={preference.homeCoords}
+                  onChange={handleHomeCoordsChange}
+                  className="h-[360px] w-full rounded-2xl"
+                />
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-on-surface-variant">
+                  <span>
+                    {preference.homeCoords.lat.toFixed(5)}, {preference.homeCoords.lng.toFixed(5)}
+                  </span>
+                  <span>Khoảng cách sẽ được tính từ vị trí này.</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 border-t border-outline-variant/10 px-5 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsMapPickerVisible(false)}
+                  className="min-h-[42px] rounded-xl border border-outline-variant/20 px-4 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:border-primary/30 hover:text-primary"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyFilters();
+                    setIsMapPickerVisible(false);
+                  }}
+                  className="min-h-[42px] rounded-xl bg-primary px-5 py-2 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
+                >
+                  Áp dụng vị trí
                 </button>
               </div>
             </div>

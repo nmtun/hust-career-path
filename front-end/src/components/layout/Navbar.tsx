@@ -5,7 +5,7 @@ import {Link, useLocation, useNavigate} from 'react-router-dom';
 
 const NAV_ITEMS = [
   {name: 'Việc làm', path: '/jobs'},
-  {name: 'Ứng tuyển', path: '/dashboard'},
+  // {name: 'Ứng tuyển', path: '/dashboard'},
 ];
 
 export default function Navbar() {

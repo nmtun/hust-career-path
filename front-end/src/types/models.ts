@@ -2,6 +2,11 @@ export type DayOfWeek = 'Thứ 2' | 'Thứ 3' | 'Thứ 4' | 'Thứ 5' | 'Thứ 6
 export type TimeOfDay = 'Sáng' | 'Chiều' | 'Tối';
 export type TimeSlot = `${TimeOfDay} ${DayOfWeek}`;
 
+export interface LocationCoordinates {
+  lat: number;
+  lng: number;
+}
+
 export interface CompanyInfo {
   name: string;
   logo: string;
@@ -29,6 +34,7 @@ export interface Job {
   company: string;
   companyLogo: string;
   location: string;
+  locationCoords?: LocationCoordinates;
   type: string;
   salary: string;
   category: string;
@@ -58,6 +64,7 @@ export interface Application {
 
 export interface StudentPreference {
   homeAddress: string;
+  homeCoords: LocationCoordinates;
   maxDistanceKm: number;
   classSchedule: TimeSlot[];
   freeTime: TimeSlot[];
