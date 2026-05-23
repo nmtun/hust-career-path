@@ -1,4 +1,3 @@
-import Sidebar from '@/components/layout/Sidebar';
 import {MOCK_JOBS} from '@/data/mockData';
 import {getSavedJobIds, toggleSavedJob} from '@/utils/savedJobs';
 import {ArrowRight, Bookmark, Building2, CheckCircle, CircleAlert, Clock, FileText, Flame, Globe, MapPin, ShieldCheck, Star, User} from 'lucide-react';
@@ -34,12 +33,17 @@ export default function JobDetailPage() {
   const averageRating = job.reviews.length === 0 ? 0 : job.reviews.reduce((sum, review) => sum + review.rating, 0) / job.reviews.length;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-10 lg:flex-row">
-      <Sidebar />
-      <main className="flex-1 space-y-8">
-        <header className="relative overflow-hidden rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm md:p-10">
-          <div className="absolute -right-10 -top-10 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+    <div className="bg-surface-container-lowest px-4 py-8 sm:px-6 lg:py-10">
+      <main className="mx-auto max-w-7xl space-y-6">
+        <div>
+          <Link to="/jobs" className="mb-3 inline-flex text-sm font-bold text-secondary hover:underline">
+            Quay lại danh sách việc làm
+          </Link>
+          <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface sm:text-4xl">Chi tiết công việc</h1>
+        </div>
+
+        <header className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 shadow-sm sm:p-6 md:p-8">
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
             <div className="flex items-center gap-5">
               <div className="h-20 w-20 overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface-container-low shadow-sm">
                 <img src={job.companyLogo} alt={job.company} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
@@ -102,7 +106,7 @@ export default function JobDetailPage() {
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
           <div className="space-y-8 xl:col-span-2">
-            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
+            <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 shadow-sm sm:p-6 md:p-8">
               <h2 className="mb-5 flex items-center gap-2 text-2xl font-headline font-bold text-on-surface">
                 <FileText className="text-primary" /> Thông tin tuyển dụng
               </h2>
@@ -153,7 +157,7 @@ export default function JobDetailPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
+            <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 shadow-sm sm:p-6 md:p-8">
               <h2 className="mb-5 text-2xl font-headline font-bold text-on-surface">Quyền lợi và quy trình tuyển dụng</h2>
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
@@ -179,7 +183,7 @@ export default function JobDetailPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
+            <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 shadow-sm sm:p-6 md:p-8">
               <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-2xl font-headline font-bold text-on-surface">Phản hồi từ người dùng</h2>
                 <p className="inline-flex items-center gap-1 text-sm font-bold text-secondary">
@@ -207,7 +211,7 @@ export default function JobDetailPage() {
           </div>
 
           <aside className="space-y-6">
-            <section className="rounded-3xl border border-outline-variant/10 bg-surface-container-low p-6 shadow-sm">
+            <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 shadow-sm sm:p-6">
               <h3 className="mb-4 text-xl font-headline font-bold text-on-surface">Thông tin doanh nghiệp</h3>
 
               <div className="mb-4 flex items-center gap-3">

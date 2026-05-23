@@ -48,4 +48,34 @@
   .featured-carousel-track.is-paused {
     animation-play-state: paused;
   }
+
+  .distance-range {
+    @apply h-1 appearance-none rounded-full outline-none;
+    background: linear-gradient(
+      to right,
+      var(--color-secondary) 0%,
+      var(--color-secondary) var(--distance-progress, 0%),
+      var(--color-surface-container-high) var(--distance-progress, 0%),
+      var(--color-surface-container-high) 100%
+    );
+  }
+
+  .distance-range::-webkit-slider-thumb {
+    @apply h-4 w-4 appearance-none rounded-full bg-secondary shadow-sm;
+  }
+
+  .distance-range::-moz-range-track {
+    @apply h-1 rounded-full;
+    background: linear-gradient(
+      to right,
+      var(--color-secondary) 0%,
+      var(--color-secondary) var(--distance-progress, 0%),
+      var(--color-surface-container-high) var(--distance-progress, 0%),
+      var(--color-surface-container-high) 100%
+    );
+  }
+
+  .distance-range::-moz-range-thumb {
+    @apply h-4 w-4 rounded-full border-0 bg-secondary shadow-sm;
+  }
 }

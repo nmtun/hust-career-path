@@ -11,11 +11,14 @@ const CATEGORIES = [
 
 export default function HomePage() {
   const navigate = useNavigate();
+
+  // Nhân đôi dữ liệu danh mục để tạo hiệu ứng carousel chạy liên tục.
   const carouselItems = [...CATEGORIES, ...CATEGORIES];
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [locationKeyword, setLocationKeyword] = useState('');
 
+  // Điều hướng sang trang việc làm kèm query tìm kiếm khi người dùng submit form.
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams();
@@ -27,6 +30,7 @@ export default function HomePage() {
 
   return (
     <div className="space-y-16 pb-16 sm:space-y-20 sm:pb-20 lg:space-y-24 lg:pb-24">
+      {/* Hero: giới thiệu nền tảng và form tìm kiếm việc làm. */}
       <section className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-4 pt-8 sm:px-6 sm:pt-10 lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:pt-12">
         <motion.div initial={{opacity: 0, x: -20}} animate={{opacity: 1, x: 0}} className="space-y-6 lg:col-span-7 lg:space-y-8">
           <h1 className="text-4xl font-headline font-extrabold leading-[0.95] tracking-tighter text-on-surface sm:text-5xl lg:text-6xl xl:text-7xl">
@@ -64,6 +68,7 @@ export default function HomePage() {
           </form>
         </motion.div>
 
+        {/* Hình ảnh minh họa và thống kê nổi bật ở hero. */}
         <motion.div
           initial={{opacity: 0, scale: 0.9}}
           animate={{opacity: 1, scale: 1}}
@@ -90,6 +95,7 @@ export default function HomePage() {
         </motion.div>
       </section>
 
+      {/* Danh mục nổi bật: carousel các nhóm ngành tuyển dụng phổ biến. */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-12">
         <div className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="text-3xl font-headline font-bold tracking-tight text-on-surface">Danh Mục Nổi Bật</h2>

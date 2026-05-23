@@ -4,7 +4,6 @@ import {useEffect, useRef, useState} from 'react';
 import {Link, useLocation, useNavigate} from 'react-router-dom';
 
 const NAV_ITEMS = [
-  {name: 'Trang chủ', path: '/'},
   {name: 'Việc làm', path: '/jobs'},
   {name: 'Ứng tuyển', path: '/dashboard'},
 ];
