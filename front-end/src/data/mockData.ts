@@ -1782,7 +1782,7 @@ export const MOCK_JOBS: Job[] = [
     locationCoords: LOCATION_COORDS.cauGiay,
     type: 'Thực tập',
     salary: '7,000,000 - 10,000,000 VND',
-    category: 'Tài chính & Kế toán',
+    category: 'Công Nghệ Thông Tin',
     postedDate: '5 ngày trước',
     description: 'Phân tích dữ liệu kinh doanh, xây dựng dashboard theo dõi KPI trên Power BI cho các danh mục sản phẩm tiêu dùng Masan.',
     requirements: [
