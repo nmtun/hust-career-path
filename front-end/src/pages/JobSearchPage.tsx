@@ -1,6 +1,7 @@
 import MapPicker from '@/components/MapPicker';
 import WeekScheduleGrid from '@/components/WeekScheduleGrid';
 import {DAYS_OF_WEEK, MOCK_JOBS, TIME_SLOT_OPTIONS, TIMES_OF_DAY} from '@/data/mockData';
+import {IT_CATEGORIES} from '@/constants';
 import type {DayOfWeek, Job, LocationCoordinates, StudentPreference, TimeOfDay, TimeSlot} from '@/types/models';
 import {getStoredStudentPreference, saveStudentPreference} from '@/utils/userPreference';
 import {getSavedJobIds, toggleSavedJob} from '@/utils/savedJobs';
@@ -9,6 +10,7 @@ import {Link, useSearchParams} from 'react-router-dom';
 import {useEffect, useMemo, useState} from 'react';
 
 type SortOption = 'match' | 'distance' | 'latest';
+type SectorFilter = 'all' | 'it' | 'other';
 
 const JOBS_PER_PAGE = 8;
 
@@ -99,9 +101,11 @@ export default function JobSearchPage() {
   const [preference, setPreference] = useState<StudentPreference>(() => getStoredStudentPreference());
   const [keyword, setKeyword] = useState(() => searchParams.get('q') ?? '');
   const [onlyVerified, setOnlyVerified] = useState(true);
+  const [sector, setSector] = useState<SectorFilter>('all');
   const [appliedPreference, setAppliedPreference] = useState<StudentPreference>(() => getStoredStudentPreference());
   const [appliedKeyword, setAppliedKeyword] = useState(() => searchParams.get('q') ?? '');
   const [appliedOnlyVerified, setAppliedOnlyVerified] = useState(true);
+  const [appliedSector, setAppliedSector] = useState<SectorFilter>('all');
 
   useEffect(() => {
     const nextKeyword = searchParams.get('q') ?? '';
@@ -131,9 +135,10 @@ export default function JobSearchPage() {
 
       const matchedDistance = distanceKm <= appliedPreference.maxDistanceKm;
       const matchedVerification = !appliedOnlyVerified || job.companyInfo.isVerified;
+      const matchedSector = appliedSector === 'all' || (appliedSector === 'it' ? IT_CATEGORIES.includes(job.category) : !IT_CATEGORIES.includes(job.category));
       const matchedSchedule = !hasScheduleConflict(job);
 
-      if (!matchedKeyword || !matchedDistance || !matchedVerification || !matchedSchedule) {
+      if (!matchedKeyword || !matchedDistance || !matchedVerification || !matchedSector || !matchedSchedule) {
         return [];
       }
 
@@ -157,7 +162,7 @@ export default function JobSearchPage() {
 
       return b.score - a.score;
     });
-  }, [appliedKeyword, appliedOnlyVerified, appliedPreference, appliedSortBy]);
+  }, [appliedKeyword, appliedOnlyVerified, appliedSector, appliedPreference, appliedSortBy]);
 
   const totalPages = Math.ceil(matchedJobs.length / JOBS_PER_PAGE);
 
@@ -168,7 +173,7 @@ export default function JobSearchPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [appliedKeyword, appliedOnlyVerified, appliedPreference, appliedSortBy]);
+  }, [appliedKeyword, appliedOnlyVerified, appliedSector, appliedPreference, appliedSortBy]);
 
   const togglePreferenceSlot = (slot: TimeSlot) => {
     setPreference((currentPreference) => {
@@ -219,6 +224,7 @@ export default function JobSearchPage() {
   const applyFilters = () => {
     setAppliedKeyword(keyword);
     setAppliedOnlyVerified(onlyVerified);
+    setAppliedSector(sector);
     setAppliedSortBy(sortBy);
     setAppliedPreference(preference);
   };
@@ -340,6 +346,29 @@ export default function JobSearchPage() {
                 <span>Doanh nghiệp đã xác thực</span>
                 <input type="checkbox" checked={onlyVerified} onChange={(event) => setOnlyVerified(event.target.checked)} className="rounded border-outline-variant" />
               </label>
+
+              <div className="space-y-2 pt-1">
+                <span className="text-xs font-black uppercase tracking-wider text-on-surface-variant">Loại công việc</span>
+                <div className="flex flex-col gap-0.5">
+                  {([
+                    {value: 'all', label: 'Tất cả'},
+                    {value: 'it', label: 'Việc IT & Kỹ thuật'},
+                    {value: 'other', label: 'Việc làm thêm'},
+                  ] as const).map(({value, label}) => (
+                    <label key={value} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-primary/5">
+                      <input
+                        type="radio"
+                        name="sector"
+                        value={value}
+                        checked={sector === value}
+                        onChange={() => setSector(value)}
+                        className="accent-primary"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
             </div>
 
