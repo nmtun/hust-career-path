@@ -352,7 +352,7 @@ export default function JobSearchPage() {
                 <div className="flex flex-col gap-0.5">
                   {([
                     {value: 'all', label: 'Tất cả'},
-                    {value: 'it', label: 'Việc IT & Kỹ thuật'},
+                    {value: 'it', label: 'Việc làm chuyên môn'},
                     {value: 'other', label: 'Việc làm thêm'},
                   ] as const).map(({value, label}) => (
                     <label key={value} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-primary/5">
