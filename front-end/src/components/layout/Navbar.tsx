@@ -97,7 +97,7 @@ export default function Navbar() {
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-surface bg-primary" />
         </button>
         <Link
-          to="/dashboard"
+          to="/"
           className="rounded-full border border-outline-variant/20 p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
         >
           <User size={24} />
