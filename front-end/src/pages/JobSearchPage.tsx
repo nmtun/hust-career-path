@@ -7,7 +7,7 @@ import {getStoredStudentPreference, saveStudentPreference} from '@/utils/userPre
 import {getSavedJobIds, toggleSavedJob} from '@/utils/savedJobs';
 import {Bookmark, Briefcase, CheckCircle, Clock, DollarSign, Flame, MapPin, Search, SlidersHorizontal, Star, X} from 'lucide-react';
 import {Link, useSearchParams} from 'react-router-dom';
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 
 type SortOption = 'match' | 'distance' | 'latest';
 type SectorFilter = 'all' | 'it' | 'other';
@@ -82,6 +82,23 @@ async function geocodeAddress(query: string, signal?: AbortSignal): Promise<Loca
   };
 }
 
+async function reverseGeocodeCoords(coords: LocationCoordinates, signal?: AbortSignal): Promise<string | null> {
+  const url = new URL('https://nominatim.openstreetmap.org/reverse');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('lat', String(coords.lat));
+  url.searchParams.set('lon', String(coords.lng));
+
+  const response = await fetch(url.toString(), {
+    signal,
+    headers: {'Accept-Language': 'vi'},
+  });
+
+  if (!response.ok) throw new Error('Failed to reverse geocode coords');
+
+  const result = (await response.json()) as {display_name?: string};
+  return result.display_name ?? null;
+}
+
 function isRemoteJob(job: Job) {
   const normalizedLocation = job.location.toLowerCase();
   return normalizedLocation.includes('online') || normalizedLocation.includes('remote') || normalizedLocation.includes('từ xa');
@@ -121,6 +138,8 @@ export default function JobSearchPage() {
   const [isMapPickerVisible, setIsMapPickerVisible] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState('');
+  // Flag để tránh vòng lặp reverse-geocode → forward-geocode
+  const skipForwardGeocodeRef = useRef(false);
 
   const {matchedJobs, hiddenExpiredCount} = useMemo(() => {
     const normalizedKeyword = appliedKeyword.trim().toLowerCase();
@@ -224,11 +243,28 @@ export default function JobSearchPage() {
 
   const handleHomeCoordsChange = (coords: LocationCoordinates) => {
     setPreference((currentPreference) => ({...currentPreference, homeCoords: coords}));
+    // Reverse geocoding: cập nhật ô địa chỉ theo tọa độ vừa chọn trên bản đồ
+    setIsGeocoding(true);
+    setGeocodeError('');
+    void (async () => {
+      try {
+        const address = await reverseGeocodeCoords(coords);
+        if (address) {
+          skipForwardGeocodeRef.current = true; // bỏ qua 1 lần forward-geocode tiếp theo
+          setPreference((currentPreference) => ({...currentPreference, homeAddress: address}));
+        }
+      } catch {
+        // tọa độ đã cập nhật, không cần báo lỗi thêm
+      } finally {
+        setIsGeocoding(false);
+      }
+    })();
   };
 
   const handleSavePreference = () => {
     saveStudentPreference(preference);
-    setSaveMessage('Đã lưu lịch học và địa chỉ của bạn.');
+    applyFilters(); // lưu xong cập nhật kết quả luôn
+    setSaveMessage('Đã lưu và áp dụng bộ lọc thành công.');
   };
 
   const applyFilters = () => {
@@ -252,6 +288,13 @@ export default function JobSearchPage() {
 
   useEffect(() => {
     const query = preference.homeAddress.trim();
+
+    // Bỏ qua 1 lần nếu địa chỉ vừa được set bởi reverse-geocoding từ bản đồ
+    if (skipForwardGeocodeRef.current) {
+      skipForwardGeocodeRef.current = false;
+      return;
+    }
+
     if (query.length < 5) {
       setGeocodeError('');
       return;
@@ -398,20 +441,13 @@ export default function JobSearchPage() {
               </div>
             </div>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-4">
               <button
                 type="button"
                 onClick={handleSavePreference}
-                className="flex min-h-[40px] w-full items-center justify-center rounded-xl border border-outline-variant/20 px-4 py-2 text-sm font-bold text-on-surface-variant transition-colors hover:border-primary/30 hover:text-primary"
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90"
               >
-                Lưu thông tin
-              </button>
-              <button
-                type="button"
-                onClick={applyFilters}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90"
-              >
-                Áp dụng bộ lọc
+                Lưu &amp; Áp dụng
               </button>
             </div>
           </aside>
