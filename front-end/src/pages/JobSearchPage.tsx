@@ -122,46 +122,56 @@ export default function JobSearchPage() {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState('');
 
-  const matchedJobs = useMemo(() => {
+  const {matchedJobs, hiddenExpiredCount} = useMemo(() => {
     const normalizedKeyword = appliedKeyword.trim().toLowerCase();
     const hasScheduleConflict = (job: Job) =>
       job.workSlots.some((slot) => appliedPreference.classSchedule.includes(slot));
 
-    const filtered = MOCK_JOBS.flatMap((job) => {
+    let expiredCount = 0;
+    const matched: {job: Job; score: number; distanceKm: number}[] = [];
+
+    for (const job of MOCK_JOBS) {
       const distanceKm = getJobDistanceKm(job, appliedPreference);
-      const matchedKeyword =
+      const isKeywordMatch =
         normalizedKeyword.length === 0 ||
         [job.title, job.company, ...job.skills].join(' ').toLowerCase().includes(normalizedKeyword);
+      const isDistanceMatch = distanceKm <= appliedPreference.maxDistanceKm;
+      const isVerifiedMatch = !appliedOnlyVerified || job.companyInfo.isVerified;
+      const isSectorMatch =
+        appliedSector === 'all' ||
+        (appliedSector === 'it' ? IT_CATEGORIES.includes(job.category) : !IT_CATEGORIES.includes(job.category));
+      const isScheduleMatch = !hasScheduleConflict(job);
+      const isActive = !isDeadlineExpired(job.applicationDeadline);
 
-      const matchedDistance = distanceKm <= appliedPreference.maxDistanceKm;
-      const matchedVerification = !appliedOnlyVerified || job.companyInfo.isVerified;
-      const matchedSector = appliedSector === 'all' || (appliedSector === 'it' ? IT_CATEGORIES.includes(job.category) : !IT_CATEGORIES.includes(job.category));
-      const matchedSchedule = !hasScheduleConflict(job);
-
-      if (!matchedKeyword || !matchedDistance || !matchedVerification || !matchedSector || !matchedSchedule) {
-        return [];
+      // Bỏ qua các job không khớp điều kiện chính
+      if (!isKeywordMatch || !isDistanceMatch || !isVerifiedMatch || !isSectorMatch || !isScheduleMatch) {
+        continue;
       }
 
-      return [
-        {
-          job,
-          score: calculateMatchScore(job, appliedPreference),
-          distanceKm,
-        },
-      ];
-    });
+      // Đếm và bỏ qua job đã hết hạn (không hiển thị trong kết quả)
+      if (!isActive) {
+        expiredCount++;
+        continue;
+      }
 
-    return filtered.sort((a, b) => {
+      matched.push({
+        job,
+        score: calculateMatchScore(job, appliedPreference),
+        distanceKm,
+      });
+    }
+
+    const sorted = matched.sort((a, b) => {
       if (appliedSortBy === 'distance') {
         return a.distanceKm - b.distanceKm;
       }
-
       if (appliedSortBy === 'latest') {
         return parseDaysFromPostedDate(a.job.postedDate) - parseDaysFromPostedDate(b.job.postedDate);
       }
-
       return b.score - a.score;
     });
+
+    return {matchedJobs: sorted, hiddenExpiredCount: expiredCount};
   }, [appliedKeyword, appliedOnlyVerified, appliedSector, appliedPreference, appliedSortBy]);
 
   const totalPages = Math.ceil(matchedJobs.length / JOBS_PER_PAGE);
@@ -410,7 +420,15 @@ export default function JobSearchPage() {
             <div className="mb-5 space-y-4 border-b border-outline-variant/10 pb-5">
               <div>
                 <h2 className="whitespace-nowrap text-xl font-headline font-extrabold text-on-surface">Danh sách công việc</h2>
-                <p className="mt-1 whitespace-nowrap text-sm font-medium text-on-surface-variant">{matchedJobs.length} công việc phù hợp</p>
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-on-surface-variant">
+                  <span>{matchedJobs.length} công việc phù hợp</span>
+                  {hiddenExpiredCount > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-semibold text-on-surface-variant">
+                      <Clock size={10} />
+                      {hiddenExpiredCount} đã hết hạn bị ẩn
+                    </span>
+                  )}
+                </p>
               </div>
 
               <form onSubmit={handleApplyFilters} className="flex w-full flex-col gap-3 md:flex-row">
@@ -445,7 +463,12 @@ export default function JobSearchPage() {
           <div className="grid gap-4">
             {matchedJobs.length === 0 && (
               <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-8 text-center text-sm font-semibold text-on-surface-variant">
-                Không có công việc nào khớp bộ lọc hiện tại. Thử mở rộng khoảng cách, nới lỏng địa điểm hoặc điều chỉnh lịch học.
+                Không có công việc nào phù hợp với tiêu chí hiện tại. Thử mở rộng khoảng cách, nới lỏng địa điểm hoặc điều chỉnh lịch học.
+                {hiddenExpiredCount > 0 && (
+                  <p className="mt-2 text-xs font-medium text-on-surface-variant/70">
+                    ({hiddenExpiredCount} công việc đã hết hạn bị ẩn theo bộ lọc hiện tại)
+                  </p>
+                )}
               </div>
             )}
 
